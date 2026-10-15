@@ -41,6 +41,15 @@ Verification baseline: Android CI run #4 successfully installed the Android 17 S
 - [ ] Arcadyan-family algorithms + vectors — `Not implemented` (real-router credential derivation is not bundled into core)
 - [ ] Additional documented algorithms + vectors — `Not implemented`
 
+## Device capabilities
+
+- [x] Root detection adapter — `[IN PROGRESS]` (implemented; CI/device verification pending)
+- [x] Explicit root verification flow — `[IN PROGRESS]` (implemented; CI/device verification pending)
+- [x] Wi-Fi interface discovery — `[IN PROGRESS]` (implemented; CI/device verification pending)
+- [ ] Monitor-mode detection — `Not implemented`
+- [ ] Packet-injection capability detection — `Not implemented`
+- [ ] Native executable lifecycle and structured logging — `Not implemented`
+
 ## Pixie Dust
 
 - [ ] Upstream implementation/revision selected — `Not implemented`
