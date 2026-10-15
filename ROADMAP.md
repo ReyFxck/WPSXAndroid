@@ -30,8 +30,11 @@
 
 ## Phase 3 — Device capability layer
 
-- [ ] Root detection adapter
-- [ ] Wi-Fi interface discovery
+- [x] Root detection adapter
+- [x] Explicit user-triggered root verification
+- [x] Wi-Fi interface discovery
+- [x] Capability status UI
+- [ ] Verify root/interface probes on physical devices
 - [ ] Monitor-mode detection
 - [ ] Packet-injection capability detection
 - [ ] Native executable lifecycle and structured logging
@@ -61,3 +64,7 @@
 - [ ] GitHub Actions release APK artifacts
 - [ ] Versioned changelog
 - [ ] Signed release process
+
+## Later UI polish
+
+- [ ] Evaluate Material 3 Expressive after the capability/backends architecture is stable
