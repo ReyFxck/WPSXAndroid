@@ -6,25 +6,27 @@
 - [x] Add Android/Compose app skeleton
 - [x] Define architectural boundaries
 - [x] Add status/checklist discipline
-- [ ] Get CI green
+- [x] Get CI green
 
 ## Phase 1 — Passive scanner
 
-- [ ] Permission UX for supported Android versions
-- [ ] Discover nearby Wi-Fi networks using Android APIs
-- [ ] Normalize SSID/BSSID/RSSI/frequency/security metadata
-- [ ] Add channel/frequency helpers
-- [ ] Add AP details screen
-- [ ] Research reliable WPS visibility on modern Android
+- [x] Permission UX for supported Android versions
+- [x] Discover nearby Wi-Fi networks using Android APIs
+- [x] Normalize SSID/BSSID/RSSI/frequency/security metadata
+- [x] Add channel/frequency helpers
+- [x] Add AP details screen
+- [ ] Verify scanner/details flow on physical devices
+- [ ] Research reliable WPS visibility on modern Android beyond capability-string heuristics
 
 ## Phase 2 — Offline WPS PIN engine
 
-- [ ] Build algorithm registry
-- [ ] Add strict BSSID/MAC parsing
-- [ ] Add WPS checksum helper
-- [ ] Implement one algorithm at a time
+- [x] Build algorithm registry
+- [x] Add strict BSSID/MAC parsing
+- [x] Add WPS checksum helper
+- [x] Integrate engine status into AP details UI
+- [ ] Implement eligible documented lab-safe algorithm modules one at a time
 - [ ] Add upstream/reference attribution for every algorithm
-- [ ] Add positive and negative test vectors before enabling in UI
+- [ ] Add positive and negative test vectors before enabling any algorithm in UI
 
 ## Phase 3 — Device capability layer
 
