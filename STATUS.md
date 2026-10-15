@@ -19,7 +19,7 @@ Do not mark work complete only because a file or placeholder exists.
 - [x] CI build passes on GitHub Actions — **Implemented AND verified**
 - [x] Debug APK uploaded as CI artifact — **Implemented AND verified**
 
-Verification baseline: Android CI run #4 successfully installed the Android 17 SDK, built `:app:assembleDebug`, ran `:app:testDebugUnitTest`, and uploaded the debug APK artifact. Android CI run #6 also verified the passive scanner build and unit tests. Android CI run #8 verified the WPS PIN core normalization, checksum, registry tests, app build, and debug APK upload. Android CI run #10 verified the AP details navigation/UI integration, existing tests, and debug APK upload. Android CI run #14 verified the device capability models, root identity parser, Wi-Fi interface classifier, Android adapters, capability UI, existing tests, and debug APK upload. Android CI run #17 verified the read-only `iw phy` monitor-mode parser/probe, existing tests, app build, and debug APK upload.
+Verification baseline: Android CI run #4 successfully installed the Android 17 SDK, built `:app:assembleDebug`, ran `:app:testDebugUnitTest`, and uploaded the debug APK artifact. Android CI run #6 also verified the passive scanner build and unit tests. Android CI run #8 verified the WPS PIN core normalization, checksum, registry tests, app build, and debug APK upload. Android CI run #10 verified the AP details navigation/UI integration, existing tests, and debug APK upload. Android CI run #14 verified the device capability models, root identity parser, Wi-Fi interface classifier, Android adapters, capability UI, existing tests, and debug APK upload. Android CI run #17 verified the read-only `iw phy` monitor-mode parser/probe, existing tests, app build, and debug APK upload. Android CI run #20 verified the structured executable lifecycle, process-argument policy tests, packet-injection readiness assessment, root/`iw` probe refactor, complete app build, unit tests, and debug APK upload.
 
 ## Scanner
 
@@ -48,8 +48,8 @@ Verification baseline: Android CI run #4 successfully installed the Android 17 S
 - [x] Wi-Fi interface discovery — **Implemented; CI verified, device verification pending**
 - [x] Device capability UI — **Implemented; CI verified, device verification pending**
 - [x] Read-only monitor-mode capability probe — **Implemented; CI verified, device verification pending**
-- [x] Packet-injection readiness assessment — `[IN PROGRESS]` (implemented read-only; CI/device verification pending; no frames are transmitted)
-- [x] Native executable lifecycle + structured execution traces — `[IN PROGRESS]` (implemented; CI/device verification pending)
+- [x] Packet-injection readiness assessment — **Implemented; CI verified, device verification pending** (read-only; no frames are transmitted)
+- [x] Native executable lifecycle + structured execution traces — **Implemented; CI verified, device verification pending**
 - [ ] Active packet-injection verification — `Not implemented` (requires explicit lab-only transmission test)
 
 ## Pixie Dust
