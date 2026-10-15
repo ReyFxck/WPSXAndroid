@@ -19,7 +19,7 @@ Do not mark work complete only because a file or placeholder exists.
 - [x] CI build passes on GitHub Actions — **Implemented AND verified**
 - [x] Debug APK uploaded as CI artifact — **Implemented AND verified**
 
-Verification baseline: Android CI run #4 successfully installed the Android 17 SDK, built `:app:assembleDebug`, ran `:app:testDebugUnitTest`, and uploaded the debug APK artifact. Android CI run #6 also verified the passive scanner build and unit tests.
+Verification baseline: Android CI run #4 successfully installed the Android 17 SDK, built `:app:assembleDebug`, ran `:app:testDebugUnitTest`, and uploaded the debug APK artifact. Android CI run #6 also verified the passive scanner build and unit tests. Android CI run #8 verified the WPS PIN core normalization, checksum, registry tests, app build, and debug APK upload.
 
 ## Scanner
 
@@ -32,9 +32,9 @@ Verification baseline: Android CI run #4 successfully installed the Android 17 S
 
 ## WPS PIN engine
 
-- [x] Algorithm registry — **Implemented; CI verification pending**
-- [x] Input normalization — **Implemented; CI verification pending**
-- [x] WPS checksum helper — **Implemented; CI verification pending**
+- [x] Algorithm registry — **Implemented AND verified**
+- [x] Input normalization — **Implemented AND verified**
+- [x] WPS checksum helper — **Implemented AND verified**
 - [ ] Belkin-family algorithms + vectors — `Not implemented` (real-router credential derivation is not bundled into core)
 - [ ] Arcadyan-family algorithms + vectors — `Not implemented` (real-router credential derivation is not bundled into core)
 - [ ] Additional documented algorithms + vectors — `Not implemented`
