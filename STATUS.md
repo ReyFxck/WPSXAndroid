@@ -14,7 +14,7 @@ Do not mark work complete only because a file or placeholder exists.
 - [x] Repository initialized — **Implemented AND verified**
 - [x] Android/Compose skeleton — **Implemented AND verified**
 - [x] Core scanner contract — **Implemented AND verified**
-- [x] WPS PIN algorithm contract — **Implemented; no algorithms yet**
+- [x] WPS PIN algorithm contract — **Implemented; no production algorithms yet**
 - [x] Active audit backend contract — **Implemented; no active backend yet**
 - [x] CI build passes on GitHub Actions — **Implemented AND verified**
 - [x] Debug APK uploaded as CI artifact — **Implemented AND verified**
@@ -32,11 +32,11 @@ Verification baseline: Android CI run #4 successfully installed the Android 17 S
 
 ## WPS PIN engine
 
-- [ ] Algorithm registry — `Not implemented`
-- [ ] Input normalization — `Not implemented`
-- [ ] WPS checksum helper — `Not implemented`
-- [ ] Belkin-family algorithms + vectors — `Not implemented`
-- [ ] Arcadyan-family algorithms + vectors — `Not implemented`
+- [x] Algorithm registry — **Implemented; CI verification pending**
+- [x] Input normalization — **Implemented; CI verification pending**
+- [x] WPS checksum helper — **Implemented; CI verification pending**
+- [ ] Belkin-family algorithms + vectors — `Not implemented` (real-router credential derivation is not bundled into core)
+- [ ] Arcadyan-family algorithms + vectors — `Not implemented` (real-router credential derivation is not bundled into core)
 - [ ] Additional documented algorithms + vectors — `Not implemented`
 
 ## Pixie Dust
