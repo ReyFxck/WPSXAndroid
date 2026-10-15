@@ -19,7 +19,7 @@ Do not mark work complete only because a file or placeholder exists.
 - [x] CI build passes on GitHub Actions — **Implemented AND verified**
 - [x] Debug APK uploaded as CI artifact — **Implemented AND verified**
 
-Verification baseline: Android CI run #4 successfully installed the Android 17 SDK, built `:app:assembleDebug`, ran `:app:testDebugUnitTest`, and uploaded the debug APK artifact. Android CI run #6 also verified the passive scanner build and unit tests. Android CI run #8 verified the WPS PIN core normalization, checksum, registry tests, app build, and debug APK upload.
+Verification baseline: Android CI run #4 successfully installed the Android 17 SDK, built `:app:assembleDebug`, ran `:app:testDebugUnitTest`, and uploaded the debug APK artifact. Android CI run #6 also verified the passive scanner build and unit tests. Android CI run #8 verified the WPS PIN core normalization, checksum, registry tests, app build, and debug APK upload. Android CI run #10 verified the AP details navigation/UI integration, existing tests, and debug APK upload.
 
 ## Scanner
 
@@ -28,7 +28,7 @@ Verification baseline: Android CI run #4 successfully installed the Android 17 S
 - [x] SSID/BSSID/RSSI/frequency normalization — **Implemented; CI verified, device verification pending**
 - [x] Channel calculation — **Implemented AND verified**
 - [x] Security capability parsing — **Implemented AND verified**
-- [x] AP details screen — `[IN PROGRESS]` (implemented; CI/device verification pending)
+- [x] AP details screen — **Implemented; CI verified, device verification pending**
 - [x] WPS capability discovery from Android scan capability strings — `[IN PROGRESS]` (heuristic/device verification pending)
 
 ## WPS PIN engine
@@ -36,7 +36,7 @@ Verification baseline: Android CI run #4 successfully installed the Android 17 S
 - [x] Algorithm registry — **Implemented AND verified**
 - [x] Input normalization — **Implemented AND verified**
 - [x] WPS checksum helper — **Implemented AND verified**
-- [x] Details-screen integration — `[IN PROGRESS]` (implemented; CI/device verification pending)
+- [x] Details-screen integration — **Implemented; CI verified, device verification pending**
 - [ ] Belkin-family algorithms + vectors — `Not implemented` (real-router credential derivation is not bundled into core)
 - [ ] Arcadyan-family algorithms + vectors — `Not implemented` (real-router credential derivation is not bundled into core)
 - [ ] Additional documented algorithms + vectors — `Not implemented`
