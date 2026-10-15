@@ -1,9 +1,8 @@
 package io.github.reyfxck.wpsxandroid.platform.device
 
-import io.github.reyfxck.wpsxandroid.core.capability.CapabilityState
-import io.github.reyfxck.wpsxandroid.core.capability.CapabilityStatus
 import io.github.reyfxck.wpsxandroid.core.capability.DeviceCapabilityProbe
 import io.github.reyfxck.wpsxandroid.core.capability.DeviceCapabilitySnapshot
+import io.github.reyfxck.wpsxandroid.core.capability.PacketInjectionReadiness
 import io.github.reyfxck.wpsxandroid.core.capability.RootAccessStatus
 import io.github.reyfxck.wpsxandroid.platform.root.AndroidRootDetector
 import io.github.reyfxck.wpsxandroid.platform.wifi.AndroidMonitorModeDetector
@@ -32,9 +31,10 @@ class AndroidDeviceCapabilityProbe(
             root = root,
             wifiInterfaces = interfaces,
             monitorMode = monitorMode,
-            packetInjection = CapabilityStatus(
-                state = CapabilityState.UNKNOWN,
-                detail = "Not probed yet. Injection requires a separate verification and is not inferred from monitor-mode support.",
+            packetInjection = PacketInjectionReadiness.assess(
+                root = root,
+                wifiInterfaces = interfaces,
+                monitorMode = monitorMode,
             ),
         )
     }

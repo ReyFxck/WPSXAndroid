@@ -48,8 +48,9 @@ Verification baseline: Android CI run #4 successfully installed the Android 17 S
 - [x] Wi-Fi interface discovery — **Implemented; CI verified, device verification pending**
 - [x] Device capability UI — **Implemented; CI verified, device verification pending**
 - [x] Read-only monitor-mode capability probe — **Implemented; CI verified, device verification pending**
-- [ ] Packet-injection capability detection — `Not implemented`
-- [ ] Native executable lifecycle and structured logging — `Not implemented`
+- [x] Packet-injection readiness assessment — `[IN PROGRESS]` (implemented read-only; CI/device verification pending; no frames are transmitted)
+- [x] Native executable lifecycle + structured execution traces — `[IN PROGRESS]` (implemented; CI/device verification pending)
+- [ ] Active packet-injection verification — `Not implemented` (requires explicit lab-only transmission test)
 
 ## Pixie Dust
 

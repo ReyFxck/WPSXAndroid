@@ -3,12 +3,15 @@ package io.github.reyfxck.wpsxandroid.platform.root
 import io.github.reyfxck.wpsxandroid.core.capability.RootAccessStatus
 import io.github.reyfxck.wpsxandroid.core.capability.RootIdentityParser
 import io.github.reyfxck.wpsxandroid.core.capability.RootState
+import io.github.reyfxck.wpsxandroid.core.process.ExecutionTrace
+import io.github.reyfxck.wpsxandroid.platform.process.StructuredProcessRunner
 import java.io.File
-import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-class AndroidRootDetector {
+class AndroidRootDetector(
+    private val processRunner: StructuredProcessRunner = StructuredProcessRunner(),
+) {
     private val knownSuPaths = listOf(
         "/system/bin/su",
         "/system/xbin/su",
@@ -34,44 +37,38 @@ class AndroidRootDetector {
     }
 
     suspend fun verify(): RootAccessStatus = withContext(Dispatchers.IO) {
-        val process = runCatching {
-            ProcessBuilder("su", "-c", "id")
-                .redirectErrorStream(true)
-                .start()
-        }.getOrElse { error ->
-            return@withContext RootAccessStatus(
+        val execution = processRunner.runFirstSuccessful(
+            label = "root-id",
+            executableCandidates = listOf("su"),
+            arguments = listOf("-c", "id"),
+            timeoutMillis = 10_000,
+            maxOutputChars = 4_096,
+        )
+        val trace = execution.trace
+        val traceText = traceSummary(trace)
+
+        if (
+            trace.exitCode == 0 &&
+            RootIdentityParser.isRootIdentity(execution.output)
+        ) {
+            RootAccessStatus(
+                state = RootState.GRANTED,
+                detail = "Root verified with the fixed `su -c id` check. $traceText",
+            )
+        } else {
+            RootAccessStatus(
                 state = RootState.DENIED_OR_FAILED,
-                detail = "Could not start su: ${error.javaClass.simpleName}",
+                detail = "Root could not be verified. $traceText",
             )
         }
+    }
 
-        try {
-            val finished = process.waitFor(10, TimeUnit.SECONDS)
-            if (!finished) {
-                process.destroyForcibly()
-                return@withContext RootAccessStatus(
-                    state = RootState.DENIED_OR_FAILED,
-                    detail = "Root verification timed out. A root manager prompt may have been denied or left unanswered.",
-                )
-            }
-
-            val output = process.inputStream.bufferedReader().use { reader ->
-                reader.readText().take(4096)
-            }
-
-            if (process.exitValue() == 0 && RootIdentityParser.isRootIdentity(output)) {
-                RootAccessStatus(
-                    state = RootState.GRANTED,
-                    detail = "Root verified with a fixed `su -c id` check.",
-                )
-            } else {
-                RootAccessStatus(
-                    state = RootState.DENIED_OR_FAILED,
-                    detail = "su did not return a verified uid=0 identity.",
-                )
-            }
-        } finally {
-            if (process.isAlive) process.destroyForcibly()
-        }
+    private fun traceSummary(trace: ExecutionTrace): String = buildString {
+        append("Probe ")
+        append(trace.state.name)
+        trace.executable?.let { append(" via $it") }
+        trace.exitCode?.let { append(" (exit $it)") }
+        append(" in ${trace.durationMs} ms")
+        append("; ${trace.detail}")
     }
 }

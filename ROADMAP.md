@@ -34,10 +34,11 @@
 - [x] Explicit user-triggered root verification
 - [x] Wi-Fi interface discovery
 - [x] Capability status UI
-- [x] Read-only monitor-mode capability probe using `iw phy` when available
+- [x] Read-only monitor-mode support probe
+- [x] Read-only packet-injection readiness assessment
+- [x] Native executable lifecycle with bounded structured execution traces
 - [ ] Verify root/interface/monitor probes on physical devices
-- [ ] Packet-injection capability detection
-- [ ] Native executable lifecycle and structured logging
+- [ ] Add an explicit controlled-lab active injection verification method
 
 ## Phase 4 — Pixie Dust backend
 
