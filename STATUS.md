@@ -12,11 +12,14 @@ Do not mark work complete only because a file or placeholder exists.
 ## Project foundation
 
 - [x] Repository initialized — **Implemented AND verified**
-- [x] Android/Compose skeleton — **Implemented; CI verification pending**
+- [x] Android/Compose skeleton — **Implemented AND verified**
 - [x] Core scanner contract — **Implemented; no platform scanner yet**
 - [x] WPS PIN algorithm contract — **Implemented; no algorithms yet**
 - [x] Active audit backend contract — **Implemented; no active backend yet**
-- [ ] CI build passes on GitHub Actions — `[IN PROGRESS]`
+- [x] CI build passes on GitHub Actions — **Implemented AND verified**
+- [x] Debug APK uploaded as CI artifact — **Implemented AND verified**
+
+Verification baseline: Android CI run #4 successfully installed the Android 17 SDK, built `:app:assembleDebug`, ran `:app:testDebugUnitTest`, and uploaded the debug APK artifact.
 
 ## Scanner
 

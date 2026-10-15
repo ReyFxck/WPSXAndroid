@@ -1,5 +1,7 @@
 # WPSXAndroid
 
+[![Android CI](https://github.com/ReyFxck/WPSXAndroid/actions/workflows/android-ci.yml/badge.svg)](https://github.com/ReyFxck/WPSXAndroid/actions/workflows/android-ci.yml)
+
 WPSXAndroid is an open-source Android project for **authorized Wi-Fi/WPS security testing, research, and lab use**.
 
 The project aims to provide a modern Android interface for Wi-Fi/WPS discovery, known WPS PIN derivation algorithms, Pixie Dust auditing, and a Reaver-compatible backend where the device, kernel, driver, and permissions support the required low-level Wi-Fi capabilities.
@@ -8,7 +10,7 @@ The project aims to provide a modern Android interface for Wi-Fi/WPS discovery, 
 
 ## Project status
 
-Early bootstrap. See [STATUS.md](STATUS.md) and [ROADMAP.md](ROADMAP.md).
+Early bootstrap is complete and CI-verified. See [STATUS.md](STATUS.md) and [ROADMAP.md](ROADMAP.md) for implementation progress.
 
 ## Planned v1 scope
 
@@ -43,7 +45,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the design rules.
 
 ## Build target
 
-The bootstrap targets modern Android with `compileSdk 37`, AGP 9.4, Gradle 9.6, and Jetpack Compose. Exact toolchain notes live in [docs/build.md](docs/build.md).
+The bootstrap targets modern Android with `compileSdk 37`, AGP 9.4, Gradle 9.6, and Jetpack Compose. Android 17's command-line SDK package is currently named `platforms;android-37.0`. Exact toolchain notes live in [docs/build.md](docs/build.md).
 
 ## License
 
