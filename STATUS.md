@@ -19,15 +19,15 @@ Do not mark work complete only because a file or placeholder exists.
 - [x] CI build passes on GitHub Actions — **Implemented AND verified**
 - [x] Debug APK uploaded as CI artifact — **Implemented AND verified**
 
-Verification baseline: Android CI run #4 successfully installed the Android 17 SDK, built `:app:assembleDebug`, ran `:app:testDebugUnitTest`, and uploaded the debug APK artifact.
+Verification baseline: Android CI run #4 successfully installed the Android 17 SDK, built `:app:assembleDebug`, ran `:app:testDebugUnitTest`, and uploaded the debug APK artifact. Android CI run #6 also verified the passive scanner build and unit tests.
 
 ## Scanner
 
-- [x] Runtime permission flow — **Implemented; CI/device verification pending**
-- [x] Android Wi-Fi scan adapter — **Implemented; CI/device verification pending**
-- [x] SSID/BSSID/RSSI/frequency normalization — **Implemented; CI/device verification pending**
-- [x] Channel calculation — **Implemented; unit verification pending**
-- [x] Security capability parsing — **Implemented; unit verification pending**
+- [x] Runtime permission flow — **Implemented; CI verified, device verification pending**
+- [x] Android Wi-Fi scan adapter — **Implemented; CI verified, device verification pending**
+- [x] SSID/BSSID/RSSI/frequency normalization — **Implemented; CI verified, device verification pending**
+- [x] Channel calculation — **Implemented AND verified**
+- [x] Security capability parsing — **Implemented AND verified**
 - [x] WPS capability discovery from Android scan capability strings — `[IN PROGRESS]` (heuristic/device verification pending)
 
 ## WPS PIN engine
