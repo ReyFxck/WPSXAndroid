@@ -14,9 +14,14 @@
 - [x] Discover nearby Wi-Fi networks using Android APIs
 - [x] Normalize SSID/BSSID/RSSI/frequency/security metadata
 - [x] Add channel/frequency helpers
+- [x] Add Wi-Fi band classification (2.4/5/6/60 GHz)
+- [x] Add compact network cards and status indicators
 - [x] Add AP details screen
-- [ ] Verify scanner/details flow on physical devices
+- [x] Add Channels tab with detected-AP occupancy per channel
+- [x] Add persistent scanner filters/sort settings
+- [ ] Verify scanner/details/channels flow on physical devices
 - [ ] Research reliable WPS visibility on modern Android beyond capability-string heuristics
+- [ ] Research a reliable read-only WPS registrar lock-state source before showing locked/unlocked icons
 
 ## Phase 2 — Offline WPS PIN engine
 
@@ -46,6 +51,7 @@
 - [ ] Document third-party license
 - [ ] Reproducible Android build
 - [ ] Structured backend adapter
+- [ ] Session/log UI
 - [ ] Controlled-lab test matrix
 
 ## Phase 5 — Reaver backend
@@ -59,13 +65,12 @@
 
 ## Phase 6 — UX and release engineering
 
+- [x] Material 3 Expressive theme
+- [x] Adaptive launcher icon + monochrome themed icon
+- [x] Top-level settings screen
 - [ ] Persistent scan history (opt-in)
 - [ ] Exportable audit report
 - [ ] Crash-safe backend sessions
 - [ ] GitHub Actions release APK artifacts
 - [ ] Versioned changelog
 - [ ] Signed release process
-
-## Later UI polish
-
-- [ ] Evaluate Material 3 Expressive after the capability/backends architecture is stable
