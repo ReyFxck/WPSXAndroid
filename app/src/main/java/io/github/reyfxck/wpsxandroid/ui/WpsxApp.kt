@@ -1,7 +1,11 @@
 package io.github.reyfxck.wpsxandroid.ui
 
 import android.Manifest
+import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.location.LocationManager
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
@@ -9,18 +13,32 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Build
+import androidx.compose.material.icons.rounded.LocationOn
+import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.Wifi
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,17 +60,23 @@ import io.github.reyfxck.wpsxandroid.platform.device.AndroidDeviceCapabilityProb
 import io.github.reyfxck.wpsxandroid.platform.wifi.AndroidWifiScanner
 import kotlinx.coroutines.launch
 
+private enum class MainTab { SCANNER, DEVICE }
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WpsxApp() {
-    MaterialTheme(colorScheme = darkColorScheme()) {
+    WpsxTheme {
         val context = LocalContext.current
         val scanner = remember(context) { AndroidWifiScanner(context.applicationContext) }
         val capabilityProbe = remember { AndroidDeviceCapabilityProbe() }
         val pinRegistry = remember { WpsPinAlgorithmRegistry(emptyList()) }
         val scope = rememberCoroutineScope()
+
+        var selectedTab by remember { mutableStateOf(MainTab.SCANNER) }
         var scanResult by remember { mutableStateOf<ScanResult?>(null) }
         var scanning by remember { mutableStateOf(false) }
         var selectedNetwork by remember { mutableStateOf<WifiNetwork?>(null) }
+        var locationRequired by remember { mutableStateOf(false) }
         var capabilitySnapshot by remember { mutableStateOf<DeviceCapabilitySnapshot?>(null) }
         var inspectingCapabilities by remember { mutableStateOf(false) }
         var verifyingRoot by remember { mutableStateOf(false) }
@@ -62,7 +86,17 @@ fun WpsxApp() {
             selectedNetwork = null
             scope.launch {
                 scanResult = scanner.scan()
+                locationRequired = !isLocationServiceEnabled(context)
                 scanning = false
+            }
+        }
+
+        fun scanIfLocationReady() {
+            if (isLocationServiceEnabled(context)) {
+                locationRequired = false
+                runScan()
+            } else {
+                locationRequired = true
             }
         }
 
@@ -86,12 +120,27 @@ fun WpsxApp() {
             contract = ActivityResultContracts.RequestPermission(),
         ) { granted ->
             if (granted) {
-                runScan()
+                scanIfLocationReady()
             } else {
                 scanResult = ScanResult.PermissionRequired(
                     setOf(Manifest.permission.ACCESS_FINE_LOCATION),
                 )
             }
+        }
+
+        val locationSettingsLauncher = rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.StartActivityForResult(),
+        ) {
+            scanIfLocationReady()
+        }
+
+        fun requestScan() {
+            val granted = context.checkSelfPermission(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+            ) == PackageManager.PERMISSION_GRANTED
+
+            if (granted) scanIfLocationReady()
+            else permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
         }
 
         if (selectedNetwork != null) {
@@ -100,167 +149,63 @@ fun WpsxApp() {
                 pinRegistry = pinRegistry,
                 onBack = { selectedNetwork = null },
             )
-        } else {
-            Scaffold { padding ->
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(padding),
-                    contentPadding = PaddingValues(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    item {
-                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text(
-                                text = "WPSXAndroid",
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.Bold,
-                            )
-                            Text(
-                                text = "Wi-Fi / WPS discovery",
-                                style = MaterialTheme.typography.bodyLarge,
-                            )
-                        }
-                    }
-
-                    item {
-                        DeviceCapabilitySection(
-                            snapshot = capabilitySnapshot,
-                            inspecting = inspectingCapabilities,
-                            verifyingRoot = verifyingRoot,
-                            onInspect = ::inspectDevice,
-                            onVerifyRoot = ::verifyRoot,
-                        )
-                    }
-
-                    item {
-                        Button(
-                            onClick = {
-                                val granted = context.checkSelfPermission(
-                                    Manifest.permission.ACCESS_FINE_LOCATION,
-                                ) == PackageManager.PERMISSION_GRANTED
-
-                                if (granted) runScan()
-                                else permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-                            },
-                            enabled = !scanning,
-                        ) {
-                            Text(if (scanning) "Scanning…" else "Scan Wi-Fi")
-                        }
-                    }
-
-                    if (scanning) {
-                        item {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                CircularProgressIndicator()
-                                Text("Waiting for Android Wi-Fi scan results…")
-                            }
-                        }
-                    }
-
-                    when (val result = scanResult) {
-                        null -> item {
-                            Text("Tap Scan Wi-Fi to discover nearby access points.")
-                        }
-
-                        is ScanResult.PermissionRequired -> item {
-                            Text("Precise location permission is required by Android's Wi-Fi scan API.")
-                        }
-
-                        is ScanResult.Unavailable -> item {
-                            Text(result.reason)
-                        }
-
-                        is ScanResult.Success -> {
-                            item {
-                                val freshness = if (result.isFresh) "fresh scan" else "cached/latest available"
-                                Text("${result.networks.size} access points • $freshness")
-                            }
-                            items(
-                                items = result.networks,
-                                key = { network -> "${network.bssid}-${network.frequencyMhz}" },
-                            ) { network ->
-                                NetworkCard(
-                                    network = network,
-                                    onClick = { selectedNetwork = network },
-                                )
-                            }
-                        }
-                    }
-
-                    item {
-                        Text(
-                            text = "Use active security tests only on networks you own or have explicit permission to assess.",
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.padding(top = 8.dp),
-                        )
-                    }
-                }
-            }
+            return@WpsxTheme
         }
-    }
-}
 
-@Composable
-private fun DeviceCapabilitySection(
-    snapshot: DeviceCapabilitySnapshot?,
-    inspecting: Boolean,
-    verifyingRoot: Boolean,
-    onInspect: () -> Unit,
-    onVerifyRoot: () -> Unit,
-) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text("Device capabilities", fontWeight = FontWeight.SemiBold)
-            Text(
-                "Passive inspection does not change Wi-Fi mode or run packet capture.",
-                style = MaterialTheme.typography.bodySmall,
-            )
-            Button(
-                onClick = onInspect,
-                enabled = !inspecting && !verifyingRoot,
-            ) {
-                Text(if (inspecting) "Inspecting…" else "Inspect device")
-            }
-
-            if (snapshot != null) {
-                Text("Root: ${snapshot.root.state.name}")
-                Text(snapshot.root.detail, style = MaterialTheme.typography.bodySmall)
-
-                if (snapshot.wifiInterfaces.isEmpty()) {
-                    Text("Wi-Fi interfaces: none visible to the app")
-                } else {
-                    Text("Wi-Fi interfaces:")
-                    snapshot.wifiInterfaces.forEach { info ->
-                        Text(
-                            "• ${info.name} • ${info.kind.name} • ${if (info.isUp) "up" else "down"}" +
-                                if (info.sysfsWireless) " • sysfs wireless" else "",
-                            style = MaterialTheme.typography.bodySmall,
+        Scaffold(
+            topBar = {
+                CenterAlignedTopAppBar(
+                    title = {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("WPSXAndroid", fontWeight = FontWeight.Bold)
+                            Text(
+                                "Wi-Fi / WPS diagnostics",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    },
+                )
+            },
+            bottomBar = {
+                NavigationBar {
+                    NavigationBarItem(
+                        selected = selectedTab == MainTab.SCANNER,
+                        onClick = { selectedTab = MainTab.SCANNER },
+                        icon = { Icon(Icons.Rounded.Wifi, contentDescription = null) },
+                        label = { Text("Scanner") },
+                    )
+                    NavigationBarItem(
+                        selected = selectedTab == MainTab.DEVICE,
+                        onClick = { selectedTab = MainTab.DEVICE },
+                        icon = { Icon(Icons.Rounded.Build, contentDescription = null) },
+                        label = { Text("Device") },
+                    )
+                }
+            },
+        ) { padding ->
+            when (selectedTab) {
+                MainTab.SCANNER -> ScannerScreen(
+                    modifier = Modifier.padding(padding),
+                    scanResult = scanResult,
+                    scanning = scanning,
+                    locationRequired = locationRequired,
+                    onScan = ::requestScan,
+                    onOpenLocationSettings = {
+                        locationSettingsLauncher.launch(
+                            Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS),
                         )
-                    }
-                }
+                    },
+                    onNetworkSelected = { selectedNetwork = it },
+                )
 
-                Text("Monitor mode: ${snapshot.monitorMode.state.name}")
-                Text(snapshot.monitorMode.detail, style = MaterialTheme.typography.bodySmall)
-                Text("Packet injection: ${snapshot.packetInjection.state.name}")
-                Text(snapshot.packetInjection.detail, style = MaterialTheme.typography.bodySmall)
-
-                Button(
-                    onClick = onVerifyRoot,
-                    enabled = !inspecting && !verifyingRoot,
-                ) {
-                    Text(if (verifyingRoot) "Verifying root…" else "Verify root access")
-                }
-                Text(
-                    "Root verification may show your root manager prompt. The adapter only runs the fixed command `su -c id`.",
-                    style = MaterialTheme.typography.bodySmall,
+                MainTab.DEVICE -> DeviceScreen(
+                    modifier = Modifier.padding(padding),
+                    snapshot = capabilitySnapshot,
+                    inspecting = inspectingCapabilities,
+                    verifyingRoot = verifyingRoot,
+                    onInspect = ::inspectDevice,
+                    onVerifyRoot = ::verifyRoot,
                 )
             }
         }
@@ -268,38 +213,319 @@ private fun DeviceCapabilitySection(
 }
 
 @Composable
-private fun NetworkCard(
-    network: WifiNetwork,
-    onClick: () -> Unit,
+private fun ScannerScreen(
+    modifier: Modifier,
+    scanResult: ScanResult?,
+    scanning: Boolean,
+    locationRequired: Boolean,
+    onScan: () -> Unit,
+    onOpenLocationSettings: () -> Unit,
+    onNetworkSelected: (WifiNetwork) -> Unit,
 ) {
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        contentPadding = PaddingValues(20.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    "Nearby networks",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    "Passive discovery first. Tap a network for WPS and radio details.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+
+        if (locationRequired) {
+            item {
+                LocationRequiredCard(onOpenLocationSettings)
+            }
+        }
+
+        item {
+            FilledTonalButton(
+                onClick = onScan,
+                enabled = !scanning,
+            ) {
+                Icon(Icons.Rounded.Wifi, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text(if (scanning) "Scanning…" else "Scan Wi-Fi")
+            }
+        }
+
+        if (scanning) {
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    CircularProgressIndicator()
+                    Text("Waiting for Android Wi-Fi scan results…")
+                }
+            }
+        }
+
+        when (val result = scanResult) {
+            null -> item {
+                EmptyState("Tap Scan Wi-Fi to discover nearby access points.")
+            }
+
+            is ScanResult.PermissionRequired -> item {
+                EmptyState("Precise location permission is required by Android's Wi-Fi scan API.")
+            }
+
+            is ScanResult.Unavailable -> item {
+                EmptyState(result.reason)
+            }
+
+            is ScanResult.Success -> {
+                item {
+                    val freshness = if (result.isFresh) "fresh scan" else "cached/latest available"
+                    Text(
+                        "${result.networks.size} access points • $freshness",
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                }
+                items(
+                    items = result.networks,
+                    key = { network -> "${network.bssid}-${network.frequencyMhz}" },
+                ) { network ->
+                    NetworkCard(network = network, onClick = { onNetworkSelected(network) })
+                }
+            }
+        }
+
+        item {
+            Text(
+                text = "Use active security tests only on networks you own or have explicit permission to assess.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 8.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun LocationRequiredCard(onOpenLocationSettings: () -> Unit) {
+    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(Icons.Rounded.LocationOn, contentDescription = null)
+                Text(
+                    "Location services are off",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+            Text(
+                "Android requires the system Location switch to be enabled before Wi-Fi scan results are exposed. Permission alone is not enough.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Button(onClick = onOpenLocationSettings) {
+                Icon(Icons.Rounded.Settings, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Open location settings")
+            }
+        }
+    }
+}
+
+@Composable
+private fun DeviceScreen(
+    modifier: Modifier,
+    snapshot: DeviceCapabilitySnapshot?,
+    inspecting: Boolean,
+    verifyingRoot: Boolean,
+    onInspect: () -> Unit,
+    onVerifyRoot: () -> Unit,
+) {
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        contentPadding = PaddingValues(20.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    "Device capabilities",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    "Root, Wi-Fi interfaces and read-only radio capability probes live here instead of cluttering the scanner.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+
+        item {
+            FilledTonalButton(
+                onClick = onInspect,
+                enabled = !inspecting && !verifyingRoot,
+            ) {
+                Icon(Icons.Rounded.Build, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text(if (inspecting) "Inspecting…" else "Inspect device")
+            }
+        }
+
+        if (snapshot == null) {
+            item { EmptyState("Run Inspect device to see hardware and root capability status.") }
+        } else {
+            item {
+                CapabilityCard(
+                    title = "Root",
+                    status = snapshot.root.state.name,
+                    detail = snapshot.root.detail,
+                )
+            }
+            item {
+                ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier.padding(18.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Text(
+                            "Wi-Fi interfaces",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        if (snapshot.wifiInterfaces.isEmpty()) {
+                            Text(
+                                "None visible to the app",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        } else {
+                            snapshot.wifiInterfaces.forEach { info ->
+                                Text(
+                                    "${info.name} • ${info.kind.name} • ${if (info.isUp) "up" else "down"}" +
+                                        if (info.sysfsWireless) " • sysfs wireless" else "",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            item {
+                CapabilityCard(
+                    title = "Monitor mode",
+                    status = snapshot.monitorMode.state.name,
+                    detail = snapshot.monitorMode.detail,
+                )
+            }
+            item {
+                CapabilityCard(
+                    title = "Packet injection",
+                    status = snapshot.packetInjection.state.name,
+                    detail = snapshot.packetInjection.detail,
+                )
+            }
+            item {
+                Button(
+                    onClick = onVerifyRoot,
+                    enabled = !inspecting && !verifyingRoot,
+                ) {
+                    Text(if (verifyingRoot) "Verifying root…" else "Verify root access")
+                }
+            }
+            item {
+                Text(
+                    "Root verification may show your root manager prompt. The adapter only runs the fixed command `su -c id`.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CapabilityCard(title: String, status: String, detail: String) {
+    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text(status, style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
+            Text(detail, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+@Composable
+private fun EmptyState(message: String) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = message,
+            modifier = Modifier.padding(18.dp),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun NetworkCard(network: WifiNetwork, onClick: () -> Unit) {
     val security = network.securityModes.joinToString(" / ") { it.name }
     val ssid = network.ssid.ifBlank { "<hidden SSID>" }
 
-    Card(
+    ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(ssid, fontWeight = FontWeight.SemiBold)
+                Text(
+                    ssid,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                )
                 if (network.wpsAdvertised) {
-                    Text("WPS", fontWeight = FontWeight.Bold)
+                    Surface(
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        shape = MaterialTheme.shapes.small,
+                    ) {
+                        Text(
+                            "WPS",
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
                 }
             }
-            Text(network.bssid, style = MaterialTheme.typography.bodySmall)
+            Text(
+                network.bssid,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             Text(
                 "${network.rssiDbm} dBm • ${signalLabel(network.rssiDbm)} • ${network.frequencyMhz} MHz" +
                     (network.channel?.let { " • ch $it" } ?: ""),
             )
             Text(security.ifBlank { "UNKNOWN" }, style = MaterialTheme.typography.bodySmall)
-            Text("Tap for details", style = MaterialTheme.typography.labelSmall)
         }
     }
 }
@@ -314,39 +540,29 @@ private fun NetworkDetailsScreen(
     val security = network.securityModes.joinToString(" / ") { it.name }.ifBlank { "UNKNOWN" }
     val normalizedBssid = remember(network.bssid) { BssidNormalizer.normalize(network.bssid) }
     val candidates = remember(network.bssid, network.ssid, pinRegistry) {
-        pinRegistry.derive(
-            WpsPinInput(
-                bssid = network.bssid,
-                ssid = network.ssid,
-            ),
-        )
+        pinRegistry.derive(WpsPinInput(bssid = network.bssid, ssid = network.ssid))
     }
 
     Scaffold { padding ->
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding),
+            modifier = Modifier.fillMaxSize().padding(padding),
             contentPadding = PaddingValues(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             item {
-                Button(onClick = onBack) {
-                    Text("Back to scan")
-                }
+                FilledTonalButton(onClick = onBack) { Text("Back to scan") }
             }
-
             item {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(
-                        text = ssid,
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    Text("Access point details", style = MaterialTheme.typography.bodyLarge)
-                }
+                Text(
+                    ssid,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    "Access point details",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
-
             item {
                 InfoCard(
                     title = "Radio / security",
@@ -359,7 +575,6 @@ private fun NetworkDetailsScreen(
                     ),
                 )
             }
-
             item {
                 val wpsSummary = if (network.wpsAdvertised) {
                     "Android scan capabilities advertise WPS for this AP."
@@ -374,7 +589,6 @@ private fun NetworkDetailsScreen(
                     ),
                 )
             }
-
             item {
                 val engineStatus = when {
                     normalizedBssid == null -> "BSSID could not be normalized, so offline analysis is unavailable."
@@ -390,7 +604,6 @@ private fun NetworkDetailsScreen(
                     ),
                 )
             }
-
             item {
                 InfoCard(
                     title = "Active audit backends",
@@ -401,34 +614,31 @@ private fun NetworkDetailsScreen(
                     ),
                 )
             }
-
-            item {
-                Text(
-                    text = "This screen separates passive Android scan data from active-test capability so the app does not present guesses as verified vulnerabilities.",
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            }
         }
     }
 }
 
 @Composable
-private fun InfoCard(
-    title: String,
-    lines: List<String>,
-) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+private fun InfoCard(title: String, lines: List<String>) {
+    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Text(title, fontWeight = FontWeight.SemiBold)
+            Text(
+                title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+            )
             lines.forEach { line ->
-                Text(line, style = MaterialTheme.typography.bodyMedium)
+                Text(line, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
 }
+
+private fun isLocationServiceEnabled(context: Context): Boolean =
+    context.getSystemService(LocationManager::class.java)?.isLocationEnabled == true
 
 private fun signalLabel(rssiDbm: Int): String = when {
     rssiDbm >= -50 -> "excellent"
