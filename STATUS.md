@@ -47,7 +47,7 @@ Verification baseline: Android CI run #4 successfully installed the Android 17 S
 - [x] Explicit root verification flow — **Implemented; CI verified, device verification pending**
 - [x] Wi-Fi interface discovery — **Implemented; CI verified, device verification pending**
 - [x] Device capability UI — **Implemented; CI verified, device verification pending**
-- [ ] Monitor-mode detection — `Not implemented`
+- [x] Read-only monitor-mode capability probe — `[IN PROGRESS]` (implemented; CI/device verification pending)
 - [ ] Packet-injection capability detection — `Not implemented`
 - [ ] Native executable lifecycle and structured logging — `Not implemented`
 
