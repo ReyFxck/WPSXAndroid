@@ -33,6 +33,8 @@ import androidx.compose.material.icons.rounded.LockOpen
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material.icons.rounded.Wifi
+import androidx.compose.material.icons.rounded.WifiOff
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -49,6 +51,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -58,6 +61,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -70,6 +74,7 @@ import io.github.reyfxck.wpsxandroid.core.wifi.ChannelUsage
 import io.github.reyfxck.wpsxandroid.core.wifi.ScanResult
 import io.github.reyfxck.wpsxandroid.core.wifi.WifiBand
 import io.github.reyfxck.wpsxandroid.core.wifi.buildChannelUsage
+import io.github.reyfxck.wpsxandroid.core.wifi.estimateDistanceMeters
 import io.github.reyfxck.wpsxandroid.core.wifi.wifiBandForFrequency
 import io.github.reyfxck.wpsxandroid.core.wps.BssidNormalizer
 import io.github.reyfxck.wpsxandroid.core.wps.WpsPinAlgorithmRegistry
@@ -77,21 +82,28 @@ import io.github.reyfxck.wpsxandroid.core.wps.WpsPinInput
 import io.github.reyfxck.wpsxandroid.platform.device.AndroidDeviceCapabilityProbe
 import io.github.reyfxck.wpsxandroid.platform.wifi.AndroidWifiScanner
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 private enum class MainTab { SCANNER, CHANNELS, DEVICE }
 private enum class NetworkSort { SIGNAL, NAME, CHANNEL }
+
+private val OpenNetworkGreen = Color(0xFF2E7D32)
+private val OpenNetworkOnGreen = Color.White
 
 private data class ScannerPreferences(
     val wpsOnly: Boolean = false,
     val hideHidden: Boolean = false,
     val showRawCapabilities: Boolean = false,
     val sort: NetworkSort = NetworkSort.SIGNAL,
+    val themeMode: WpsxThemeMode = WpsxThemeMode.SYSTEM,
 )
 
 @Composable
 fun WpsxApp() {
-    WpsxTheme {
-        val context = LocalContext.current
+    val context = LocalContext.current
+    var scannerPreferences by remember(context) { mutableStateOf(loadScannerPreferences(context)) }
+
+    WpsxTheme(mode = scannerPreferences.themeMode) {
         val scanner = remember(context) { AndroidWifiScanner(context.applicationContext) }
         val capabilityProbe = remember { AndroidDeviceCapabilityProbe() }
         val pinRegistry = remember { WpsPinAlgorithmRegistry(emptyList()) }
@@ -99,11 +111,11 @@ fun WpsxApp() {
 
         var selectedTab by remember { mutableStateOf(MainTab.SCANNER) }
         var showSettings by remember { mutableStateOf(false) }
-        var scannerPreferences by remember(context) { mutableStateOf(loadScannerPreferences(context)) }
         var scanResult by remember { mutableStateOf<ScanResult?>(null) }
         var scanning by remember { mutableStateOf(false) }
         var selectedNetwork by remember { mutableStateOf<WifiNetwork?>(null) }
         var locationRequired by remember { mutableStateOf(false) }
+        var showLocationDialog by remember { mutableStateOf(false) }
         var capabilitySnapshot by remember { mutableStateOf<DeviceCapabilitySnapshot?>(null) }
         var inspectingCapabilities by remember { mutableStateOf(false) }
         var verifyingRoot by remember { mutableStateOf(false) }
@@ -123,12 +135,14 @@ fun WpsxApp() {
             }
         }
 
-        fun scanIfLocationReady() {
+        fun scanIfLocationReady(showDialogIfDisabled: Boolean = true) {
             if (isLocationServiceEnabled(context)) {
                 locationRequired = false
+                showLocationDialog = false
                 runScan()
             } else {
                 locationRequired = true
+                if (showDialogIfDisabled) showLocationDialog = true
             }
         }
 
@@ -163,7 +177,12 @@ fun WpsxApp() {
         val locationSettingsLauncher = rememberLauncherForActivityResult(
             contract = ActivityResultContracts.StartActivityForResult(),
         ) {
-            scanIfLocationReady()
+            scanIfLocationReady(showDialogIfDisabled = false)
+        }
+
+        fun openLocationSettings() {
+            showLocationDialog = false
+            locationSettingsLauncher.launch(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
         }
 
         fun requestScan() {
@@ -173,6 +192,30 @@ fun WpsxApp() {
 
             if (granted) scanIfLocationReady()
             else permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+        }
+
+        if (showLocationDialog) {
+            AlertDialog(
+                onDismissRequest = { showLocationDialog = false },
+                icon = { Icon(Icons.Rounded.LocationOn, contentDescription = null) },
+                title = { Text("Turn on Location") },
+                text = {
+                    Text(
+                        "Android requires the system Location switch for Wi-Fi scan results. " +
+                            "You already control the app permission separately.",
+                    )
+                },
+                confirmButton = {
+                    Button(onClick = ::openLocationSettings) {
+                        Text("Open settings")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showLocationDialog = false }) {
+                        Text("Not now")
+                    }
+                },
+            )
         }
 
         if (selectedNetwork != null) {
@@ -252,11 +295,7 @@ fun WpsxApp() {
                         locationRequired = locationRequired,
                         preferences = scannerPreferences,
                         onScan = ::requestScan,
-                        onOpenLocationSettings = {
-                            locationSettingsLauncher.launch(
-                                Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS),
-                            )
-                        },
+                        onOpenLocationSettings = ::openLocationSettings,
                         onNetworkSelected = { selectedNetwork = it },
                     )
 
@@ -404,6 +443,7 @@ private fun CompactNetworkCard(
     val securityText = securityLabel(network.securityModes)
     val isOpen = network.securityModes.contains(WifiSecurity.OPEN)
     val band = wifiBandForFrequency(network.frequencyMhz)
+    val distance = estimateDistanceMeters(network.rssiDbm)
 
     ElevatedCard(
         modifier = Modifier
@@ -423,9 +463,9 @@ private fun CompactNetworkCard(
                     imageVector = if (hidden) Icons.Rounded.VisibilityOff else Icons.Rounded.Wifi,
                     contentDescription = if (hidden) "Hidden SSID" else "Wi-Fi network",
                     modifier = Modifier.size(22.dp),
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = if (isOpen) OpenNetworkGreen else MaterialTheme.colorScheme.primary,
                 )
-                Column(modifier = Modifier.fillMaxWidth(0.62f)) {
+                Column(modifier = Modifier.fillMaxWidth(0.58f)) {
                     Text(
                         ssid,
                         style = MaterialTheme.typography.titleMedium,
@@ -439,10 +479,17 @@ private fun CompactNetworkCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                Text(
-                    "${network.rssiDbm} dBm",
-                    style = MaterialTheme.typography.labelLarge,
-                )
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        "${network.rssiDbm} dBm",
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                    Text(
+                        formatDistance(distance),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
 
             Row(
@@ -453,13 +500,27 @@ private fun CompactNetworkCard(
                 StatusPill(
                     text = securityText,
                     icon = if (isOpen) Icons.Rounded.LockOpen else Icons.Rounded.Lock,
+                    containerColor = if (isOpen) OpenNetworkGreen else null,
+                    contentColor = if (isOpen) OpenNetworkOnGreen else null,
                 )
                 StatusPill(text = "${band.label} • ch ${network.channel ?: "?"}")
-                if (network.wpsAdvertised) {
-                    StatusPill(text = "WPS ?", icon = Icons.Rounded.Wifi)
-                }
+                WpsStatusPill(network.wpsAdvertised)
             }
         }
+    }
+}
+
+@Composable
+private fun WpsStatusPill(wpsAdvertised: Boolean) {
+    if (wpsAdvertised) {
+        StatusPill(text = "WPS", icon = Icons.Rounded.Wifi)
+    } else {
+        StatusPill(
+            text = "WPS —",
+            icon = Icons.Rounded.WifiOff,
+            containerColor = MaterialTheme.colorScheme.errorContainer,
+            contentColor = MaterialTheme.colorScheme.onErrorContainer,
+        )
     }
 }
 
@@ -467,10 +528,12 @@ private fun CompactNetworkCard(
 private fun StatusPill(
     text: String,
     icon: ImageVector? = null,
+    containerColor: Color? = null,
+    contentColor: Color? = null,
 ) {
     Surface(
-        color = MaterialTheme.colorScheme.secondaryContainer,
-        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        color = containerColor ?: MaterialTheme.colorScheme.secondaryContainer,
+        contentColor = contentColor ?: MaterialTheme.colorScheme.onSecondaryContainer,
         shape = MaterialTheme.shapes.small,
     ) {
         Row(
@@ -536,6 +599,11 @@ private fun ChannelBandCard(
     band: WifiBand,
     entries: List<ChannelUsage>,
 ) {
+    val minimum = entries.minOfOrNull { it.accessPointCount }
+    val leastBusyChannels = entries
+        .filter { it.accessPointCount == minimum }
+        .joinToString(", ") { it.channel.toString() }
+
     ElevatedCard(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(14.dp),
@@ -546,6 +614,13 @@ private fun ChannelBandCard(
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
             )
+            if (minimum != null) {
+                Text(
+                    "Lowest count among listed channels: $leastBusyChannels • $minimum AP${if (minimum == 1) "" else "s"}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             entries.forEachIndexed { index, usage ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -576,6 +651,46 @@ private fun SettingsScreen(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        item {
+            Text(
+                "Appearance",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+            )
+        }
+        item {
+            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text("Theme", fontWeight = FontWeight.SemiBold)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        WpsxThemeMode.values().forEach { option ->
+                            FilterChip(
+                                selected = preferences.themeMode == option,
+                                onClick = {
+                                    onPreferencesChanged(preferences.copy(themeMode = option))
+                                },
+                                label = {
+                                    Text(
+                                        when (option) {
+                                            WpsxThemeMode.SYSTEM -> "System"
+                                            WpsxThemeMode.LIGHT -> "Light"
+                                            WpsxThemeMode.DARK -> "Dark"
+                                            WpsxThemeMode.OLED -> "OLED"
+                                        },
+                                    )
+                                },
+                            )
+                        }
+                    }
+                }
+            }
+        }
         item {
             Text(
                 "Scanner",
@@ -653,7 +768,23 @@ private fun SettingsScreen(
                 ) {
                     Text("WPS state", fontWeight = FontWeight.SemiBold)
                     Text(
-                        "The scanner can currently tell whether WPS is advertised, but it does not yet know whether the registrar is locked. Cards therefore show WPS ? instead of guessing locked/unlocked.",
+                        "WPS means Android saw WPS advertised by the AP. A red WPS — means it was not advertised. " +
+                            "Registrar lock state still needs a lower-level backend, so the app does not guess it.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+        item {
+            ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Text("Distance estimate", fontWeight = FontWeight.SemiBold)
+                    Text(
+                        "Meters are estimated from RSSI with a path-loss model. Walls, antennas and AP transmit power can make the real distance very different.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -879,6 +1010,8 @@ private fun NetworkDetailsScreen(
         pinRegistry.derive(WpsPinInput(bssid = network.bssid, ssid = network.ssid))
     }
     val band = wifiBandForFrequency(network.frequencyMhz)
+    val isOpen = network.securityModes.contains(WifiSecurity.OPEN)
+    val distance = estimateDistanceMeters(network.rssiDbm)
 
     Scaffold(
         topBar = {
@@ -916,19 +1049,16 @@ private fun NetworkDetailsScreen(
                         ) {
                             StatusPill(
                                 text = security,
-                                icon = if (network.securityModes.contains(WifiSecurity.OPEN)) {
-                                    Icons.Rounded.LockOpen
-                                } else {
-                                    Icons.Rounded.Lock
-                                },
+                                icon = if (isOpen) Icons.Rounded.LockOpen else Icons.Rounded.Lock,
+                                containerColor = if (isOpen) OpenNetworkGreen else null,
+                                contentColor = if (isOpen) OpenNetworkOnGreen else null,
                             )
                             StatusPill(band.label)
-                            if (network.wpsAdvertised) {
-                                StatusPill("WPS ?", Icons.Rounded.Wifi)
-                            }
+                            WpsStatusPill(network.wpsAdvertised)
                         }
                         Text("BSSID: ${normalizedBssid ?: network.bssid}")
                         Text("Signal: ${network.rssiDbm} dBm (${signalLabel(network.rssiDbm)})")
+                        Text("Approx. distance: ${formatDistance(distance)}")
                         Text("Channel: ${network.channel ?: "unknown"} • ${network.frequencyMhz} MHz")
                     }
                 }
@@ -1035,17 +1165,31 @@ private fun securityLabel(modes: Set<WifiSecurity>): String {
     return order.filter(modes::contains).joinToString("/") { it.name }
 }
 
+private fun formatDistance(distanceMeters: Double): String =
+    if (distanceMeters < 10.0) {
+        val tenths = (distanceMeters * 10.0).roundToInt() / 10.0
+        "≈ $tenths m"
+    } else {
+        "≈ ${distanceMeters.roundToInt()} m"
+    }
+
 private fun loadScannerPreferences(context: Context): ScannerPreferences {
     val prefs = context.getSharedPreferences("scanner_preferences", Context.MODE_PRIVATE)
     val sort = runCatching {
         NetworkSort.valueOf(prefs.getString("sort", NetworkSort.SIGNAL.name) ?: NetworkSort.SIGNAL.name)
     }.getOrDefault(NetworkSort.SIGNAL)
+    val themeMode = runCatching {
+        WpsxThemeMode.valueOf(
+            prefs.getString("theme_mode", WpsxThemeMode.SYSTEM.name) ?: WpsxThemeMode.SYSTEM.name,
+        )
+    }.getOrDefault(WpsxThemeMode.SYSTEM)
 
     return ScannerPreferences(
         wpsOnly = prefs.getBoolean("wps_only", false),
         hideHidden = prefs.getBoolean("hide_hidden", false),
         showRawCapabilities = prefs.getBoolean("show_raw_capabilities", false),
         sort = sort,
+        themeMode = themeMode,
     )
 }
 
@@ -1059,6 +1203,7 @@ private fun saveScannerPreferences(
         .putBoolean("hide_hidden", preferences.hideHidden)
         .putBoolean("show_raw_capabilities", preferences.showRawCapabilities)
         .putString("sort", preferences.sort.name)
+        .putString("theme_mode", preferences.themeMode.name)
         .apply()
 }
 
