@@ -32,11 +32,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import io.github.reyfxck.wpsxandroid.core.capability.DeviceCapabilitySnapshot
 import io.github.reyfxck.wpsxandroid.core.model.WifiNetwork
 import io.github.reyfxck.wpsxandroid.core.wifi.ScanResult
 import io.github.reyfxck.wpsxandroid.core.wps.BssidNormalizer
 import io.github.reyfxck.wpsxandroid.core.wps.WpsPinAlgorithmRegistry
 import io.github.reyfxck.wpsxandroid.core.wps.WpsPinInput
+import io.github.reyfxck.wpsxandroid.platform.device.AndroidDeviceCapabilityProbe
 import io.github.reyfxck.wpsxandroid.platform.wifi.AndroidWifiScanner
 import kotlinx.coroutines.launch
 
@@ -45,11 +47,15 @@ fun WpsxApp() {
     MaterialTheme(colorScheme = darkColorScheme()) {
         val context = LocalContext.current
         val scanner = remember(context) { AndroidWifiScanner(context.applicationContext) }
+        val capabilityProbe = remember { AndroidDeviceCapabilityProbe() }
         val pinRegistry = remember { WpsPinAlgorithmRegistry(emptyList()) }
         val scope = rememberCoroutineScope()
         var scanResult by remember { mutableStateOf<ScanResult?>(null) }
         var scanning by remember { mutableStateOf(false) }
         var selectedNetwork by remember { mutableStateOf<WifiNetwork?>(null) }
+        var capabilitySnapshot by remember { mutableStateOf<DeviceCapabilitySnapshot?>(null) }
+        var inspectingCapabilities by remember { mutableStateOf(false) }
+        var verifyingRoot by remember { mutableStateOf(false) }
 
         fun runScan() {
             scanning = true
@@ -57,6 +63,22 @@ fun WpsxApp() {
             scope.launch {
                 scanResult = scanner.scan()
                 scanning = false
+            }
+        }
+
+        fun inspectDevice() {
+            inspectingCapabilities = true
+            scope.launch {
+                capabilitySnapshot = capabilityProbe.inspectPassive()
+                inspectingCapabilities = false
+            }
+        }
+
+        fun verifyRoot() {
+            verifyingRoot = true
+            scope.launch {
+                capabilitySnapshot = capabilityProbe.verifyRoot()
+                verifyingRoot = false
             }
         }
 
@@ -99,6 +121,16 @@ fun WpsxApp() {
                                 style = MaterialTheme.typography.bodyLarge,
                             )
                         }
+                    }
+
+                    item {
+                        DeviceCapabilitySection(
+                            snapshot = capabilitySnapshot,
+                            inspecting = inspectingCapabilities,
+                            verifyingRoot = verifyingRoot,
+                            onInspect = ::inspectDevice,
+                            onVerifyRoot = ::verifyRoot,
+                        )
                     }
 
                     item {
@@ -168,6 +200,68 @@ fun WpsxApp() {
                         )
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DeviceCapabilitySection(
+    snapshot: DeviceCapabilitySnapshot?,
+    inspecting: Boolean,
+    verifyingRoot: Boolean,
+    onInspect: () -> Unit,
+    onVerifyRoot: () -> Unit,
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text("Device capabilities", fontWeight = FontWeight.SemiBold)
+            Text(
+                "Passive inspection does not change Wi-Fi mode or run packet capture.",
+                style = MaterialTheme.typography.bodySmall,
+            )
+            Button(
+                onClick = onInspect,
+                enabled = !inspecting && !verifyingRoot,
+            ) {
+                Text(if (inspecting) "Inspecting…" else "Inspect device")
+            }
+
+            if (snapshot != null) {
+                Text("Root: ${snapshot.root.state.name}")
+                Text(snapshot.root.detail, style = MaterialTheme.typography.bodySmall)
+
+                if (snapshot.wifiInterfaces.isEmpty()) {
+                    Text("Wi-Fi interfaces: none visible to the app")
+                } else {
+                    Text("Wi-Fi interfaces:")
+                    snapshot.wifiInterfaces.forEach { info ->
+                        Text(
+                            "• ${info.name} • ${info.kind.name} • ${if (info.isUp) "up" else "down"}" +
+                                if (info.sysfsWireless) " • sysfs wireless" else "",
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                }
+
+                Text("Monitor mode: ${snapshot.monitorMode.state.name}")
+                Text(snapshot.monitorMode.detail, style = MaterialTheme.typography.bodySmall)
+                Text("Packet injection: ${snapshot.packetInjection.state.name}")
+                Text(snapshot.packetInjection.detail, style = MaterialTheme.typography.bodySmall)
+
+                Button(
+                    onClick = onVerifyRoot,
+                    enabled = !inspecting && !verifyingRoot,
+                ) {
+                    Text(if (verifyingRoot) "Verifying root…" else "Verify root access")
+                }
+                Text(
+                    "Root verification may show your root manager prompt. The adapter only runs the fixed command `su -c id`.",
+                    style = MaterialTheme.typography.bodySmall,
+                )
             }
         }
     }
