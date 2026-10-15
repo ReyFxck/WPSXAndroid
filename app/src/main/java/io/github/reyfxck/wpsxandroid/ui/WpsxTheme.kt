@@ -11,6 +11,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
+enum class WpsxThemeMode {
+    SYSTEM,
+    LIGHT,
+    DARK,
+    OLED,
+}
+
 private val WpsxDarkColors = darkColorScheme(
     primary = Color(0xFFCDB8FF),
     onPrimary = Color(0xFF2D1462),
@@ -26,6 +33,24 @@ private val WpsxDarkColors = darkColorScheme(
     surfaceContainerHighest = Color(0xFF37323E),
 )
 
+private val WpsxOledColors = darkColorScheme(
+    primary = Color(0xFFCDB8FF),
+    onPrimary = Color(0xFF2D1462),
+    primaryContainer = Color(0xFF402079),
+    onPrimaryContainer = Color(0xFFE9DDFF),
+    secondary = Color(0xFFD5C2FF),
+    secondaryContainer = Color(0xFF2B233B),
+    onSecondaryContainer = Color(0xFFEDE4FF),
+    tertiary = Color(0xFFB8C4FF),
+    background = Color.Black,
+    surface = Color.Black,
+    surfaceContainerLowest = Color.Black,
+    surfaceContainerLow = Color(0xFF08070A),
+    surfaceContainer = Color(0xFF0D0B11),
+    surfaceContainerHigh = Color(0xFF15121A),
+    surfaceContainerHighest = Color(0xFF1D1923),
+)
+
 private val WpsxShapes = Shapes(
     extraSmall = RoundedCornerShape(12.dp),
     small = RoundedCornerShape(16.dp),
@@ -36,8 +61,18 @@ private val WpsxShapes = Shapes(
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun WpsxTheme(content: @Composable () -> Unit) {
-    val colors = if (isSystemInDarkTheme()) WpsxDarkColors else expressiveLightColorScheme()
+fun WpsxTheme(
+    mode: WpsxThemeMode = WpsxThemeMode.SYSTEM,
+    content: @Composable () -> Unit,
+) {
+    val useDark = isSystemInDarkTheme()
+    val colors = when (mode) {
+        WpsxThemeMode.SYSTEM -> if (useDark) WpsxDarkColors else expressiveLightColorScheme()
+        WpsxThemeMode.LIGHT -> expressiveLightColorScheme()
+        WpsxThemeMode.DARK -> WpsxDarkColors
+        WpsxThemeMode.OLED -> WpsxOledColors
+    }
+
     MaterialExpressiveTheme(
         colorScheme = colors,
         shapes = WpsxShapes,
