@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -47,7 +46,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SmallTopAppBar
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -191,7 +189,7 @@ fun WpsxApp() {
 
         Scaffold(
             topBar = {
-                SmallTopAppBar(
+                TopAppBar(
                     title = {
                         Text(
                             if (showSettings) "Settings" else "WPSXAndroid",
@@ -308,7 +306,7 @@ private fun ScannerScreen(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column(modifier = Modifier.weight(1f)) {
+                Column(modifier = Modifier.fillMaxWidth(0.62f)) {
                     Text(
                         "Nearby networks",
                         style = MaterialTheme.typography.titleLarge,
@@ -427,7 +425,7 @@ private fun CompactNetworkCard(
                     modifier = Modifier.size(22.dp),
                     tint = MaterialTheme.colorScheme.primary,
                 )
-                Column(modifier = Modifier.weight(1f)) {
+                Column(modifier = Modifier.fillMaxWidth(0.62f)) {
                     Text(
                         ssid,
                         style = MaterialTheme.typography.titleMedium,
@@ -456,21 +454,10 @@ private fun CompactNetworkCard(
                     text = securityText,
                     icon = if (isOpen) Icons.Rounded.LockOpen else Icons.Rounded.Lock,
                 )
-                StatusPill(text = band.label)
+                StatusPill(text = "${band.label} • ch ${network.channel ?: "?"}")
                 if (network.wpsAdvertised) {
                     StatusPill(text = "WPS ?", icon = Icons.Rounded.Wifi)
                 }
-                Spacer(Modifier.weight(1f))
-                Text(
-                    buildString {
-                        append("ch ")
-                        append(network.channel ?: "?")
-                        append(" • ")
-                        append(signalLabel(network.rssiDbm))
-                    },
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
             }
         }
     }
@@ -689,7 +676,7 @@ private fun SettingSwitchRow(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(modifier = Modifier.weight(1f)) {
+            Column(modifier = Modifier.fillMaxWidth(0.78f)) {
                 Text(title, fontWeight = FontWeight.SemiBold)
                 Text(
                     description,
@@ -754,7 +741,7 @@ private fun DeviceScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column(modifier = Modifier.weight(1f)) {
+                Column(modifier = Modifier.fillMaxWidth(0.62f)) {
                     Text(
                         "Device capabilities",
                         style = MaterialTheme.typography.titleLarge,
