@@ -19,7 +19,7 @@ Do not mark work complete only because a file or placeholder exists.
 - [x] CI build passes on GitHub Actions — **Implemented AND verified**
 - [x] Debug APK uploaded as CI artifact — **Implemented AND verified**
 
-Verification baseline: Android CI run #4 successfully installed the Android 17 SDK, built `:app:assembleDebug`, ran `:app:testDebugUnitTest`, and uploaded the debug APK artifact. Android CI run #6 also verified the passive scanner build and unit tests. Android CI run #8 verified the WPS PIN core normalization, checksum, registry tests, app build, and debug APK upload. Android CI run #10 verified the AP details navigation/UI integration, existing tests, and debug APK upload.
+Verification baseline: Android CI run #4 successfully installed the Android 17 SDK, built `:app:assembleDebug`, ran `:app:testDebugUnitTest`, and uploaded the debug APK artifact. Android CI run #6 also verified the passive scanner build and unit tests. Android CI run #8 verified the WPS PIN core normalization, checksum, registry tests, app build, and debug APK upload. Android CI run #10 verified the AP details navigation/UI integration, existing tests, and debug APK upload. Android CI run #14 verified the device capability models, root identity parser, Wi-Fi interface classifier, Android adapters, capability UI, existing tests, and debug APK upload.
 
 ## Scanner
 
@@ -43,9 +43,10 @@ Verification baseline: Android CI run #4 successfully installed the Android 17 S
 
 ## Device capabilities
 
-- [x] Root detection adapter — `[IN PROGRESS]` (implemented; CI/device verification pending)
-- [x] Explicit root verification flow — `[IN PROGRESS]` (implemented; CI/device verification pending)
-- [x] Wi-Fi interface discovery — `[IN PROGRESS]` (implemented; CI/device verification pending)
+- [x] Root detection adapter — **Implemented; CI verified, device verification pending**
+- [x] Explicit root verification flow — **Implemented; CI verified, device verification pending**
+- [x] Wi-Fi interface discovery — **Implemented; CI verified, device verification pending**
+- [x] Device capability UI — **Implemented; CI verified, device verification pending**
 - [ ] Monitor-mode detection — `Not implemented`
 - [ ] Packet-injection capability detection — `Not implemented`
 - [ ] Native executable lifecycle and structured logging — `Not implemented`
