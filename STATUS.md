@@ -13,7 +13,7 @@ Do not mark work complete only because a file or placeholder exists.
 
 - [x] Repository initialized — **Implemented AND verified**
 - [x] Android/Compose skeleton — **Implemented AND verified**
-- [x] Core scanner contract — **Implemented; no platform scanner yet**
+- [x] Core scanner contract — **Implemented AND verified**
 - [x] WPS PIN algorithm contract — **Implemented; no algorithms yet**
 - [x] Active audit backend contract — **Implemented; no active backend yet**
 - [x] CI build passes on GitHub Actions — **Implemented AND verified**
@@ -23,12 +23,12 @@ Verification baseline: Android CI run #4 successfully installed the Android 17 S
 
 ## Scanner
 
-- [ ] Runtime permission flow — `Not implemented`
-- [ ] Android Wi-Fi scan adapter — `Not implemented`
-- [ ] SSID/BSSID/RSSI/frequency normalization — `Not implemented`
-- [ ] Channel calculation — `Not implemented`
-- [ ] Security capability parsing — `Not implemented`
-- [ ] WPS capability discovery — `Not implemented`
+- [x] Runtime permission flow — **Implemented; CI/device verification pending**
+- [x] Android Wi-Fi scan adapter — **Implemented; CI/device verification pending**
+- [x] SSID/BSSID/RSSI/frequency normalization — **Implemented; CI/device verification pending**
+- [x] Channel calculation — **Implemented; unit verification pending**
+- [x] Security capability parsing — **Implemented; unit verification pending**
+- [x] WPS capability discovery from Android scan capability strings — `[IN PROGRESS]` (heuristic/device verification pending)
 
 ## WPS PIN engine
 

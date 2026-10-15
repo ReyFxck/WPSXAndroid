@@ -7,7 +7,11 @@ interface WifiScanner {
 }
 
 sealed interface ScanResult {
-    data class Success(val networks: List<WifiNetwork>) : ScanResult
+    data class Success(
+        val networks: List<WifiNetwork>,
+        val isFresh: Boolean,
+    ) : ScanResult
+
     data class PermissionRequired(val permissions: Set<String>) : ScanResult
     data class Unavailable(val reason: String) : ScanResult
 }
