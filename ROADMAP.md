@@ -34,8 +34,8 @@
 - [x] Explicit user-triggered root verification
 - [x] Wi-Fi interface discovery
 - [x] Capability status UI
-- [ ] Verify root/interface probes on physical devices
-- [ ] Monitor-mode detection
+- [x] Read-only monitor-mode capability probe using `iw phy` when available
+- [ ] Verify root/interface/monitor probes on physical devices
 - [ ] Packet-injection capability detection
 - [ ] Native executable lifecycle and structured logging
 
