@@ -2,7 +2,10 @@ package io.github.reyfxck.wpsxandroid.platform.wifi
 
 import io.github.reyfxck.wpsxandroid.core.capability.CapabilityState
 import io.github.reyfxck.wpsxandroid.core.capability.CapabilityStatus
+import io.github.reyfxck.wpsxandroid.core.capability.IwDevParser
 import io.github.reyfxck.wpsxandroid.core.capability.IwPhyParser
+import io.github.reyfxck.wpsxandroid.core.capability.MonitorBackendClassifier
+import io.github.reyfxck.wpsxandroid.core.capability.MonitorBackendSelector
 import io.github.reyfxck.wpsxandroid.core.process.ExecutionTrace
 import io.github.reyfxck.wpsxandroid.core.process.StructuredExecutionResult
 import io.github.reyfxck.wpsxandroid.platform.process.StructuredProcessRunner
@@ -12,9 +15,10 @@ import kotlinx.coroutines.withContext
 /**
  * Read-only monitor-mode capability probe.
  *
- * This class never changes interface type. It only asks `iw phy` which
- * interface modes the driver reports as supported. When root has already
- * been verified, it may retry the same read-only query through `su -c`.
+ * This class never changes interface type. It first checks whether Android or
+ * the driver already exposes a monitor interface, then falls back to the
+ * generic supported-interface-modes report. This avoids assuming every device
+ * must expose monitor mode in the same way.
  */
 class AndroidMonitorModeDetector(
     private val processRunner: StructuredProcessRunner = StructuredProcessRunner(),
@@ -27,65 +31,77 @@ class AndroidMonitorModeDetector(
     )
 
     suspend fun inspect(rootVerified: Boolean = false): CapabilityStatus = withContext(Dispatchers.IO) {
-        val direct = processRunner.runFirstSuccessful(
+        val devExecution = runIw(
+            label = "iw-dev",
+            arguments = listOf("dev"),
+            rootVerified = rootVerified,
+        )
+        val existingMonitorInterfaces = if (devExecution.trace.exitCode == 0) {
+            IwDevParser.monitorInterfaces(devExecution.output)
+        } else {
+            emptyList()
+        }
+
+        val phyExecution = runIw(
             label = "iw-phy",
-            executableCandidates = executableCandidates,
             arguments = listOf("phy"),
+            rootVerified = rootVerified,
+        )
+        val genericMonitorAdvertised = if (phyExecution.trace.exitCode == 0) {
+            IwPhyParser.reportsMonitorMode(phyExecution.output)
+        } else {
+            null
+        }
+
+        val candidates = MonitorBackendClassifier.classify(
+            existingMonitorInterfaces = existingMonitorInterfaces,
+            genericMonitorAdvertised = genericMonitorAdvertised,
+        )
+        val selected = MonitorBackendSelector.select(candidates)
+
+        val traces = "${traceSummary(devExecution.trace)}; ${traceSummary(phyExecution.trace)}"
+        if (selected == null) {
+            return@withContext CapabilityStatus(
+                state = CapabilityState.UNKNOWN,
+                detail = "No monitor-mode backend evidence could be classified. $traces",
+            )
+        }
+
+        CapabilityStatus(
+            state = selected.state,
+            detail = "Backend: ${selected.displayName}; strategy: ${selected.strategy.name}. ${selected.detail} $traces",
+        )
+    }
+
+    private suspend fun runIw(
+        label: String,
+        arguments: List<String>,
+        rootVerified: Boolean,
+    ): StructuredExecutionResult {
+        val direct = processRunner.runFirstSuccessful(
+            label = label,
+            executableCandidates = executableCandidates,
+            arguments = arguments,
             timeoutMillis = 5_000,
             maxOutputChars = 65_536,
         )
+        if (direct.trace.exitCode == 0 || !rootVerified) return direct
 
-        val execution = if (direct.trace.exitCode == 0 || !rootVerified) {
-            direct
-        } else {
-            rootIwPhy() ?: direct
+        val fixedCommands = executableCandidates.map { executable ->
+            (listOf(executable) + arguments).joinToString(" ")
         }
 
-        val trace = execution.trace
-        val traceText = traceSummary(trace)
-
-        if (trace.exitCode != 0) {
-            return@withContext CapabilityStatus(
-                state = CapabilityState.UNKNOWN,
-                detail = "Could not obtain usable read-only `iw phy` data. $traceText",
-            )
-        }
-
-        when (IwPhyParser.reportsMonitorMode(execution.output)) {
-            true -> CapabilityStatus(
-                state = CapabilityState.AVAILABLE,
-                detail = "Driver reports monitor as a supported interface mode via read-only `iw phy`. $traceText",
-            )
-            false -> CapabilityStatus(
-                state = CapabilityState.UNAVAILABLE,
-                detail = "`iw phy` reported supported interface modes but did not include monitor. $traceText",
-            )
-            null -> CapabilityStatus(
-                state = CapabilityState.UNKNOWN,
-                detail = "`iw phy` ran, but its output did not contain a parseable supported-interface-modes section. $traceText",
-            )
-        }
-    }
-
-    private suspend fun rootIwPhy(): StructuredExecutionResult? {
-        val fixedCommands = listOf(
-            "iw phy",
-            "/system/bin/iw phy",
-            "/vendor/bin/iw phy",
-            "/system/xbin/iw phy",
-        )
-
-        var last: StructuredExecutionResult? = null
+        var last = direct
         fixedCommands.forEach { command ->
-            val execution = processRunner.runFirstSuccessful(
-                label = "root-iw-phy",
+            val rooted = processRunner.runFirstSuccessful(
+                label = "root-$label",
                 executableCandidates = listOf("su"),
                 arguments = listOf("-c", command),
                 timeoutMillis = 5_000,
                 maxOutputChars = 65_536,
             )
-            last = execution
-            if (execution.trace.exitCode == 0) return execution
+            last = rooted
+            if (rooted.trace.exitCode == 0) return rooted
         }
         return last
     }
