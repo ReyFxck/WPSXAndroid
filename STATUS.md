@@ -19,7 +19,7 @@ Do not mark work complete only because a file or placeholder exists.
 - [x] CI build passes on GitHub Actions — **Implemented AND verified**
 - [x] Debug APK uploaded as CI artifact — **Implemented AND verified**
 
-Verification baseline: Android CI run #4 successfully installed the Android 17 SDK, built `:app:assembleDebug`, ran `:app:testDebugUnitTest`, and uploaded the debug APK artifact. Android CI run #6 also verified the passive scanner build and unit tests. Android CI run #8 verified the WPS PIN core normalization, checksum, registry tests, app build, and debug APK upload. Android CI run #10 verified the AP details navigation/UI integration, existing tests, and debug APK upload. Android CI run #14 verified the device capability models, root identity parser, Wi-Fi interface classifier, Android adapters, capability UI, existing tests, and debug APK upload. Android CI run #17 verified the read-only `iw phy` monitor-mode parser/probe, existing tests, app build, and debug APK upload. Android CI run #20 verified the structured executable lifecycle, process-argument policy tests, packet-injection readiness assessment, root/`iw` probe refactor, complete app build, unit tests, and debug APK upload. Android CI run #22 verified the Material 3 Expressive UI refresh, scanner/device tab split, Location-settings flow, adaptive/themed launcher icon resources, complete app build, unit tests, and debug APK upload. Android CI run #27 verified the compact scanner UI, hidden/open/security/WPS/band indicators, Wi-Fi band helpers, per-channel AP occupancy aggregation/tests, Channels tab, persistent scanner settings, complete app build, unit tests, and debug APK upload. Android CI run #35 verified the density-independent adaptive launcher foreground, System/Light/Dark/OLED themes, Location-off dialog flow, approximate-distance helper/tests, revised WPS/open-network indicators, channel low-occupancy hint, complete app build, unit tests, and debug APK upload. Android CI run #44 verified passive WPS information-element parsing, WPS version/AP Setup Locked/manufacturer/model extraction tests, local OUI vendor lookup tests, Android Wi-Fi-standard integration, approved launcher artwork resources, complete app build, unit tests, and debug APK upload. Android CI run #57 verified extended passive WPS Setup State/serial-number/config-method parsing and tests, extended AP detail presentation, adaptive-icon safe-zone inset resources, complete app build, unit tests, and debug APK upload.
+Verification baseline: Android CI run #4 successfully installed the Android 17 SDK, built `:app:assembleDebug`, ran `:app:testDebugUnitTest`, and uploaded the debug APK artifact. Android CI run #6 also verified the passive scanner build and unit tests. Android CI run #8 verified the WPS PIN core normalization, checksum, registry tests, app build, and debug APK upload. Android CI run #10 verified the AP details navigation/UI integration, existing tests, and debug APK upload. Android CI run #14 verified the device capability models, root identity parser, Wi-Fi interface classifier, Android adapters, capability UI, existing tests, and debug APK upload. Android CI run #17 verified the read-only `iw phy` monitor-mode parser/probe, existing tests, app build, and debug APK upload. Android CI run #20 verified the structured executable lifecycle, process-argument policy tests, packet-injection readiness assessment, root/`iw` probe refactor, complete app build, unit tests, and debug APK upload. Android CI run #22 verified the Material 3 Expressive UI refresh, scanner/device tab split, Location-settings flow, adaptive/themed launcher icon resources, complete app build, unit tests, and debug APK upload. Android CI run #27 verified the compact scanner UI, hidden/open/security/WPS/band indicators, Wi-Fi band helpers, per-channel AP occupancy aggregation/tests, Channels tab, persistent scanner settings, complete app build, unit tests, and debug APK upload. Android CI run #35 verified the density-independent adaptive launcher foreground, System/Light/Dark/OLED themes, Location-off dialog flow, approximate-distance helper/tests, revised WPS/open-network indicators, channel low-occupancy hint, complete app build, unit tests, and debug APK upload. Android CI run #44 verified passive WPS information-element parsing, WPS version/AP Setup Locked/manufacturer/model extraction tests, local OUI vendor lookup tests, Android Wi-Fi-standard integration, approved launcher artwork resources, complete app build, unit tests, and debug APK upload. Android CI run #57 verified extended passive WPS Setup State/serial-number/config-method parsing and tests, extended AP detail presentation, adaptive-icon safe-zone inset resources, complete app build, unit tests, and debug APK upload. Android CI run #61 verified RSSI-aware Wi-Fi signal rendering, open-network green signal state, pinned Pixiewps/Reaver provenance, read-only Pixie readiness evaluation/tests, AP-details readiness UI, complete app build, unit tests, and debug APK upload.
 
 ## UI / UX
 
@@ -27,18 +27,19 @@ Verification baseline: Android CI run #4 successfully installed the Android 17 S
 - [x] Channels tab — **Implemented; CI verified, device verification pending**
 - [x] Compact network cards — **Implemented; CI verified, device verification pending**
 - [x] Network status indicators for hidden SSID, security/open network, Wi-Fi band and advertised WPS — **Implemented; CI verified, device verification pending**
-- [x] Green visual state for open networks — **Implemented; CI verified, device verification pending**
+- [x] RSSI-aware Wi-Fi signal indicator — **Implemented; CI verified, device verification pending**
+- [x] Green visual state for open networks, including signal indicator — **Implemented; CI verified, device verification pending**
 - [x] WPS state badge using advertised/locked metadata when available — **Implemented; CI verified, device verification pending**
-- [x] Router vendor badge/monogram with generic fallback — **Implemented; CI verified, device verification pending**
+- [x] Router vendor text from WPS metadata/OUI fallback — **Implemented; CI verified, device verification pending**
 - [x] Settings screen with persisted scanner filters/sort — **Implemented; CI verified, device verification pending**
 - [x] Persisted System/Light/Dark/OLED appearance modes — **Implemented; CI verified, device verification pending**
 - [x] Material 3 Expressive theme — **Implemented; CI verified, device verification pending**
 - [x] System Location-switch detection — **Implemented; CI verified, device verification pending**
 - [x] Location-off dialog with direct Settings action + return-to-scan flow — **Implemented; CI verified, device verification pending**
 - [x] User-approved launcher artwork wired into adaptive/round icons — **Implemented; CI verified**
-- [x] Adaptive-icon safe-zone inset to prevent launcher zoom/cropping — **Implemented; CI verified, launcher visual verification pending**
+- [x] Adaptive-icon safe-zone inset to prevent launcher zoom/cropping — **Implemented; CI verified; user device visually verified**
 - [x] Android 13+ monochrome themed icon — **Implemented; CI verified, launcher verification pending**
-- [ ] Curated manufacturer-logo pack with trademark/source review — `Not implemented` (monogram fallback remains active)
+- [ ] Curated manufacturer-logo pack with trademark/source review — `Not implemented`
 
 ## Scanner
 
@@ -87,22 +88,23 @@ Verification baseline: Android CI run #4 successfully installed the Android 17 S
 
 ## Pixie Dust
 
-- [ ] Upstream implementation/revision selected — `Not implemented`
-- [ ] Licensing reviewed/documented — `Not implemented`
+- [x] Upstream implementation/revision selected — **Implemented AND verified** (`kimocoder/pixiewps` pinned to `8e8062eda97b0309e3f6baaa90eb6fa33423c37c`)
+- [x] Pixiewps licensing/provenance documented — **Implemented AND verified** (GPL-3.0 reference; see `docs/PIXIE_BACKEND_SELECTION.md`)
 - [ ] Android native build strategy — `Not implemented`
-- [ ] Capability detection — `Not implemented`
-- [ ] Structured backend interface implementation — `Not implemented`
-- [ ] Session/log UI — `Not implemented`
-- [ ] Lab verification — `Not implemented`
+- [x] Read-only capability/readiness evaluator — **Implemented AND verified** (WPS/lock/root/interface/monitor/injection checks; does not transmit frames or recover credentials)
+- [ ] Structured active backend interface implementation — `Not implemented`
+- [x] AP-details readiness/session-check UI — **Implemented AND verified** (ephemeral diagnostic session; persistent backend logs remain pending)
+- [ ] Persistent/crash-safe backend session logs — `Not implemented`
+- [ ] Lab verification of an active backend — `Not implemented`
 
 ## Reaver
 
-- [ ] Upstream fork/revision selected — `Not implemented`
-- [ ] Licensing reviewed/documented — `Not implemented`
+- [x] Upstream fork/revision selected — **Implemented AND verified** (`t6x/reaver-wps-fork-t6x` pinned to `f9b5e150f913a23d34c8098d598b90aaa08261cc`)
+- [ ] Licensing reviewed/documented — `[IN PROGRESS]` (project provenance recorded; per-file redistribution review still required before bundling)
 - [ ] Android native build strategy — `Not implemented`
 - [ ] Root/backend process adapter — `Not implemented`
-- [ ] Monitor-mode capability detection — `Not implemented`
-- [ ] Injection capability detection — `Not implemented`
+- [x] Existing read-only monitor-mode capability layer reusable by backend — **Implemented AND verified**
+- [x] Existing packet-injection readiness layer reusable by backend — **Implemented AND verified**
 - [ ] Structured output parser — `Not implemented`
 - [ ] Session persistence — `Not implemented`
 - [ ] Lab verification — `Not implemented`
