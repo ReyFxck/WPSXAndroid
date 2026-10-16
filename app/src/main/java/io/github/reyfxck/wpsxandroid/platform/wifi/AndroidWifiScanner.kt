@@ -29,6 +29,12 @@ class AndroidWifiScanner(context: Context) : WifiScanner {
     private val locationManager = appContext.getSystemService(LocationManager::class.java)
 
     override suspend fun scan(): ScanResult {
+        if (!wifiManager.isWifiEnabled) {
+            return ScanResult.Unavailable(
+                "Wi-Fi is turned off. Turn Wi-Fi on before scanning nearby access points.",
+            )
+        }
+
         if (!hasFineLocationPermission()) {
             return ScanResult.PermissionRequired(setOf(Manifest.permission.ACCESS_FINE_LOCATION))
         }
