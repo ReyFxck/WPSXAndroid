@@ -2,9 +2,9 @@ package io.github.reyfxck.wpsxandroid.core.audit
 
 import io.github.reyfxck.wpsxandroid.core.model.WifiNetwork
 import io.github.reyfxck.wpsxandroid.core.model.WifiSecurity
-import kotlin.test.Test
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Test
 
 class AuthorizedTestGateTest {
     private val network = WifiNetwork(
