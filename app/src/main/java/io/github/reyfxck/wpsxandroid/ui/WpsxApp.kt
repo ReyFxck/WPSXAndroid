@@ -10,9 +10,9 @@ import android.location.LocationManager
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.BarChart
@@ -63,12 +62,21 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import io.github.reyfxck.wpsxandroid.core.audit.PixieReadinessEvaluator
+import io.github.reyfxck.wpsxandroid.core.audit.PixieReadinessReport
+import io.github.reyfxck.wpsxandroid.core.audit.ReadinessLevel
+import io.github.reyfxck.wpsxandroid.core.audit.SelectedAuditBackends
+import io.github.reyfxck.wpsxandroid.core.capability.DeviceCapabilityProbe
 import io.github.reyfxck.wpsxandroid.core.capability.DeviceCapabilitySnapshot
 import io.github.reyfxck.wpsxandroid.core.model.WifiNetwork
 import io.github.reyfxck.wpsxandroid.core.model.WifiSecurity
@@ -84,6 +92,7 @@ import io.github.reyfxck.wpsxandroid.core.wps.WpsPinInput
 import io.github.reyfxck.wpsxandroid.platform.device.AndroidDeviceCapabilityProbe
 import io.github.reyfxck.wpsxandroid.platform.wifi.AndroidWifiScanner
 import kotlinx.coroutines.launch
+import kotlin.math.min
 import kotlin.math.roundToInt
 
 private enum class MainTab { SCANNER, CHANNELS, DEVICE }
@@ -170,9 +179,7 @@ fun WpsxApp() {
             if (granted) {
                 scanIfLocationReady()
             } else {
-                scanResult = ScanResult.PermissionRequired(
-                    setOf(Manifest.permission.ACCESS_FINE_LOCATION),
-                )
+                scanResult = ScanResult.PermissionRequired(setOf(Manifest.permission.ACCESS_FINE_LOCATION))
             }
         }
 
@@ -205,9 +212,7 @@ fun WpsxApp() {
                             "The app permission is controlled separately.",
                     )
                 },
-                confirmButton = {
-                    Button(onClick = ::openLocationSettings) { Text("Open settings") }
-                },
+                confirmButton = { Button(onClick = ::openLocationSettings) { Text("Open settings") } },
                 dismissButton = {
                     TextButton(onClick = { showLocationDialog = false }) { Text("Not now") }
                 },
@@ -218,6 +223,7 @@ fun WpsxApp() {
             NetworkDetailsScreen(
                 network = network,
                 pinRegistry = pinRegistry,
+                capabilityProbe = capabilityProbe,
                 showRawCapabilities = preferences.showRawCapabilities,
                 onBack = { selectedNetwork = null },
             )
@@ -294,12 +300,10 @@ fun WpsxApp() {
                         onOpenLocationSettings = ::openLocationSettings,
                         onNetworkSelected = { selectedNetwork = it },
                     )
-
                     MainTab.CHANNELS -> ChannelsScreen(
                         modifier = Modifier.padding(padding),
                         networks = currentNetworks,
                     )
-
                     MainTab.DEVICE -> DeviceScreen(
                         modifier = Modifier.padding(padding),
                         snapshot = capabilitySnapshot,
@@ -424,7 +428,11 @@ private fun CompactNetworkCard(network: WifiNetwork, onClick: () -> Unit) {
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                NetworkAvatar(network = network, hidden = hidden, isOpen = isOpen)
+                SignalStrengthIcon(
+                    rssiDbm = network.rssiDbm,
+                    hidden = hidden,
+                    isOpen = isOpen,
+                )
                 Column(modifier = Modifier.fillMaxWidth(0.58f)) {
                     Text(
                         ssid,
@@ -473,29 +481,43 @@ private fun CompactNetworkCard(network: WifiNetwork, onClick: () -> Unit) {
 }
 
 @Composable
-private fun NetworkAvatar(network: WifiNetwork, hidden: Boolean, isOpen: Boolean) {
-    val vendor = network.vendorName
-    if (vendor.isNullOrBlank()) {
+private fun SignalStrengthIcon(rssiDbm: Int, hidden: Boolean, isOpen: Boolean) {
+    if (hidden) {
         Icon(
-            imageVector = if (hidden) Icons.Rounded.VisibilityOff else Icons.Rounded.Wifi,
-            contentDescription = if (hidden) "Hidden SSID" else "Wi-Fi network",
-            modifier = Modifier.size(24.dp),
+            imageVector = Icons.Rounded.VisibilityOff,
+            contentDescription = "Hidden SSID",
+            modifier = Modifier.size(30.dp),
             tint = if (isOpen) OpenNetworkGreen else MaterialTheme.colorScheme.primary,
         )
         return
     }
 
-    Surface(
-        modifier = Modifier.size(34.dp),
-        shape = CircleShape,
-        color = MaterialTheme.colorScheme.primaryContainer,
-        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Text(
-                vendorInitials(vendor),
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Bold,
+    val level = signalLevel(rssiDbm)
+    val activeColor = if (isOpen) OpenNetworkGreen else MaterialTheme.colorScheme.primary
+    val inactiveColor = activeColor.copy(alpha = 0.18f)
+
+    Canvas(modifier = Modifier.size(34.dp)) {
+        val d = min(size.width, size.height)
+        val center = Offset(size.width / 2f, size.height * 0.82f)
+        val stroke = Stroke(width = d * 0.105f, cap = StrokeCap.Round)
+        val radii = listOf(d * 0.19f, d * 0.30f, d * 0.42f)
+
+        drawCircle(
+            color = activeColor,
+            radius = d * 0.065f,
+            center = center,
+        )
+
+        radii.forEachIndexed { index, radius ->
+            val requiredLevel = index + 2
+            drawArc(
+                color = if (level >= requiredLevel) activeColor else inactiveColor,
+                startAngle = 225f,
+                sweepAngle = 90f,
+                useCenter = false,
+                topLeft = Offset(center.x - radius, center.y - radius),
+                size = Size(radius * 2f, radius * 2f),
+                style = stroke,
             )
         }
     }
@@ -602,14 +624,14 @@ private fun ChannelBandCard(band: WifiBand, entries: List<ChannelUsage>) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            entries.forEachIndexed { index, usage ->
+            entries.forEachIndexed { index, usageEntry ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text("Channel ${usage.channel}")
-                    StatusPill(if (usage.accessPointCount == 1) "1 AP" else "${usage.accessPointCount} APs")
+                    Text("Channel ${usageEntry.channel}")
+                    StatusPill(if (usageEntry.accessPointCount == 1) "1 AP" else "${usageEntry.accessPointCount} APs")
                 }
                 if (index != entries.lastIndex) HorizontalDivider()
             }
@@ -673,7 +695,7 @@ private fun SettingsScreen(
         item {
             SettingSwitchRow(
                 "Show raw capabilities",
-                "Display Android's raw capability string in AP details.",
+                "Display Android's raw capability string in the AP details screen.",
                 preferences.showRawCapabilities,
             ) { onPreferencesChanged(preferences.copy(showRawCapabilities = it)) }
         }
@@ -707,7 +729,17 @@ private fun SettingsScreen(
                 lines = listOf(
                     "On Android 11+ the app parses passive WPS beacon information elements when the device exposes them.",
                     "That can reveal WPS version, setup/lock state, manufacturer, model, serial number, device name and advertised configuration methods without an active WPS exchange.",
-                    "If a field is missing, the app reports Unknown or simply omits that optional field instead of guessing.",
+                    "If a field is missing, the app reports Unknown or omits that optional field instead of guessing.",
+                ),
+            )
+        }
+        item {
+            InfoCard(
+                title = "Audit backend references",
+                lines = listOf(
+                    "Pixie engine reference: ${SelectedAuditBackends.PIXIEWPS_REPOSITORY}@${SelectedAuditBackends.PIXIEWPS_REVISION.take(12)}.",
+                    "WPS transport reference: ${SelectedAuditBackends.REAVER_REPOSITORY}@${SelectedAuditBackends.REAVER_REVISION.take(12)}.",
+                    "Neither backend is bundled or executed by this build yet.",
                 ),
             )
         }
@@ -883,6 +915,7 @@ private fun EmptyState(message: String) {
 private fun NetworkDetailsScreen(
     network: WifiNetwork,
     pinRegistry: WpsPinAlgorithmRegistry,
+    capabilityProbe: DeviceCapabilityProbe,
     showRawCapabilities: Boolean,
     onBack: () -> Unit,
 ) {
@@ -895,13 +928,26 @@ private fun NetworkDetailsScreen(
     val isOpen = network.securityModes.contains(WifiSecurity.OPEN)
     val distance = estimateDistanceMeters(network.rssiDbm)
     val wps = network.wpsInfo
+    val scope = rememberCoroutineScope()
+    var pixieChecking by remember(network.bssid) { mutableStateOf(false) }
+    var pixieReport by remember(network.bssid) { mutableStateOf<PixieReadinessReport?>(null) }
+    var pixieCheckNumber by remember(network.bssid) { mutableStateOf(0) }
+
+    fun runPixieReadiness() {
+        if (pixieChecking) return
+        pixieChecking = true
+        scope.launch {
+            val snapshot = capabilityProbe.verifyRoot()
+            pixieReport = PixieReadinessEvaluator.evaluate(network, snapshot)
+            pixieCheckNumber += 1
+            pixieChecking = false
+        }
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Text(ssid, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Bold)
-                },
+                title = { Text(ssid, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Rounded.ArrowBack, contentDescription = "Back to scan")
@@ -998,14 +1044,106 @@ private fun NetworkDetailsScreen(
             }
 
             item {
+                PixieReadinessCard(
+                    checking = pixieChecking,
+                    checkNumber = pixieCheckNumber,
+                    report = pixieReport,
+                    onCheck = ::runPixieReadiness,
+                )
+            }
+
+            item {
                 InfoCard(
-                    "Active audit backends",
+                    "Reaver backend",
                     listOf(
-                        "Pixie Dust: planned",
-                        "Reaver: planned",
-                        "Session logging will live here once the active backend layer is wired.",
+                        "Selected reference: ${SelectedAuditBackends.REAVER_REPOSITORY}@${SelectedAuditBackends.REAVER_REVISION.take(12)}.",
+                        "Planned role: WPS transport/session handling and structured metadata parsing.",
+                        "The executable is not bundled or invoked by this build.",
                     ),
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PixieReadinessCard(
+    checking: Boolean,
+    checkNumber: Int,
+    report: PixieReadinessReport?,
+    onCheck: () -> Unit,
+) {
+    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Pixie Dust readiness", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(
+                "Engine reference: ${SelectedAuditBackends.PIXIEWPS_REPOSITORY}@${SelectedAuditBackends.PIXIEWPS_REVISION.take(12)}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                "One tap checks WPS metadata, root, interface visibility, monitor-mode support and injection readiness. It does not start PIN/passphrase recovery.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            FilledTonalButton(onClick = onCheck, enabled = !checking) {
+                if (checking) {
+                    CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                } else {
+                    Icon(Icons.Rounded.Build, contentDescription = null, modifier = Modifier.size(18.dp))
+                }
+                Spacer(Modifier.width(6.dp))
+                Text(if (checking) "Checking…" else "Check Pixie readiness")
+            }
+
+            report?.let { current ->
+                HorizontalDivider()
+                Text(
+                    "Session check #$checkNumber",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    current.summary,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                current.checks.forEach { check ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.Top,
+                    ) {
+                        val container = when (check.level) {
+                            ReadinessLevel.PASS -> OpenNetworkGreen
+                            ReadinessLevel.WARNING -> MaterialTheme.colorScheme.secondaryContainer
+                            ReadinessLevel.BLOCKED -> MaterialTheme.colorScheme.errorContainer
+                        }
+                        val content = when (check.level) {
+                            ReadinessLevel.PASS -> OpenNetworkOnGreen
+                            ReadinessLevel.WARNING -> MaterialTheme.colorScheme.onSecondaryContainer
+                            ReadinessLevel.BLOCKED -> MaterialTheme.colorScheme.onErrorContainer
+                        }
+                        StatusPill(
+                            text = when (check.level) {
+                                ReadinessLevel.PASS -> "PASS"
+                                ReadinessLevel.WARNING -> "CHECK"
+                                ReadinessLevel.BLOCKED -> "BLOCKED"
+                            },
+                            containerColor = container,
+                            contentColor = content,
+                        )
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Text(check.name, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                            Text(
+                                check.detail,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -1057,13 +1195,11 @@ private fun securityLabel(modes: Set<WifiSecurity>): String {
     return order.filter(modes::contains).joinToString("/") { it.name }
 }
 
-private fun vendorInitials(vendor: String): String {
-    val words = vendor.split(' ', '-', '_').filter { it.isNotBlank() }
-    return if (words.size >= 2) {
-        "${words[0].first()}${words[1].first()}".uppercase()
-    } else {
-        vendor.filter(Char::isLetterOrDigit).take(2).uppercase().ifBlank { "?" }
-    }
+private fun signalLevel(rssiDbm: Int): Int = when {
+    rssiDbm >= -55 -> 4
+    rssiDbm >= -67 -> 3
+    rssiDbm >= -75 -> 2
+    else -> 1
 }
 
 private fun formatDistance(distanceMeters: Double): String =
