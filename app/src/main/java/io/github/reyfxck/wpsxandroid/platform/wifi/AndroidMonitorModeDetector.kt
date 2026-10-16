@@ -4,6 +4,7 @@ import io.github.reyfxck.wpsxandroid.core.capability.CapabilityState
 import io.github.reyfxck.wpsxandroid.core.capability.CapabilityStatus
 import io.github.reyfxck.wpsxandroid.core.capability.IwPhyParser
 import io.github.reyfxck.wpsxandroid.core.process.ExecutionTrace
+import io.github.reyfxck.wpsxandroid.core.process.StructuredExecutionResult
 import io.github.reyfxck.wpsxandroid.platform.process.StructuredProcessRunner
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -12,7 +13,8 @@ import kotlinx.coroutines.withContext
  * Read-only monitor-mode capability probe.
  *
  * This class never changes interface type. It only asks `iw phy` which
- * interface modes the driver reports as supported.
+ * interface modes the driver reports as supported. When root has already
+ * been verified, it may retry the same read-only query through `su -c`.
  */
 class AndroidMonitorModeDetector(
     private val processRunner: StructuredProcessRunner = StructuredProcessRunner(),
@@ -24,14 +26,21 @@ class AndroidMonitorModeDetector(
         "/system/xbin/iw",
     )
 
-    suspend fun inspect(): CapabilityStatus = withContext(Dispatchers.IO) {
-        val execution = processRunner.runFirstSuccessful(
+    suspend fun inspect(rootVerified: Boolean = false): CapabilityStatus = withContext(Dispatchers.IO) {
+        val direct = processRunner.runFirstSuccessful(
             label = "iw-phy",
             executableCandidates = executableCandidates,
             arguments = listOf("phy"),
             timeoutMillis = 5_000,
             maxOutputChars = 65_536,
         )
+
+        val execution = if (direct.trace.exitCode == 0 || !rootVerified) {
+            direct
+        } else {
+            rootIwPhy() ?: direct
+        }
+
         val trace = execution.trace
         val traceText = traceSummary(trace)
 
@@ -56,6 +65,29 @@ class AndroidMonitorModeDetector(
                 detail = "`iw phy` ran, but its output did not contain a parseable supported-interface-modes section. $traceText",
             )
         }
+    }
+
+    private suspend fun rootIwPhy(): StructuredExecutionResult? {
+        val fixedCommands = listOf(
+            "iw phy",
+            "/system/bin/iw phy",
+            "/vendor/bin/iw phy",
+            "/system/xbin/iw phy",
+        )
+
+        var last: StructuredExecutionResult? = null
+        fixedCommands.forEach { command ->
+            val execution = processRunner.runFirstSuccessful(
+                label = "root-iw-phy",
+                executableCandidates = listOf("su"),
+                arguments = listOf("-c", command),
+                timeoutMillis = 5_000,
+                maxOutputChars = 65_536,
+            )
+            last = execution
+            if (execution.trace.exitCode == 0) return execution
+        }
+        return last
     }
 
     private fun traceSummary(trace: ExecutionTrace): String = buildString {
