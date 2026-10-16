@@ -11,16 +11,18 @@
 ## Phase 1 — Passive scanner
 
 - [x] Permission UX for supported Android versions
+- [x] Request coarse + fine location together for Android's Exact/Approximate choice
+- [x] Detect Wi-Fi-off state and provide direct Wi-Fi settings flow
 - [x] Discover nearby Wi-Fi networks using Android APIs
 - [x] Normalize SSID/BSSID/RSSI/frequency/security metadata
 - [x] Add channel/frequency helpers
 - [x] Add Wi-Fi band classification (2.4/5/6/60 GHz)
 - [x] Add compact network cards and status indicators
 - [x] Add RSSI-aware Wi-Fi signal indicators with green open-network state
-- [x] Add AP details screen
+- [x] Add compact AP-details screen with expandable technical/WPS information
 - [x] Add Channels tab with detected-AP occupancy per channel
 - [x] Add persistent scanner filters/sort settings
-- [ ] Verify scanner/details/channels flow on physical devices
+- [ ] Verify revised scanner/details/channels flow on physical devices
 - [ ] Research reliable WPS visibility on modern Android beyond capability-string heuristics
 - [ ] Research additional reliable read-only WPS registrar state sources
 
@@ -39,29 +41,34 @@
 - [x] Root detection adapter
 - [x] Explicit user-triggered root verification
 - [x] Wi-Fi interface discovery
+- [x] Add rooted `/sys/class/net` interface fallback
 - [x] Capability status UI
 - [x] Read-only monitor-mode support probe
+- [x] Add rooted read-only `iw phy` fallback
 - [x] Read-only packet-injection readiness assessment
 - [x] Native executable lifecycle with bounded structured execution traces
-- [ ] Verify root/interface/monitor probes on physical devices
+- [ ] Verify rooted interface/monitor probes on physical devices
 - [ ] Add an explicit controlled-lab active injection verification method
 
-## Phase 4 — Pixie Dust backend
+## Phase 4 — Authorized test mode / Pixie Dust backend
 
+- [x] Restrict active-test entry to the currently connected selected AP
+- [x] Require explicit ownership/authorization confirmation
 - [x] Select and pin candidate upstream revision (`kimocoder/pixiewps`)
 - [x] Document Pixiewps third-party license/provenance
 - [x] Add read-only Pixie readiness evaluator + tests
-- [x] Add AP-details readiness/session-check UI
-- [ ] Reproducible Android/NDK build of the pinned engine
-- [ ] Structured backend adapter
+- [x] Add compact AP-details test/preflight UI
+- [ ] Reproducible Android/NDK build of the pinned Pixiewps engine
+- [ ] Structured Pixie backend adapter
 - [ ] Persistent/crash-safe backend session logs
-- [ ] Controlled-lab test matrix
+- [ ] Controlled-lab active Pixie verification
 
-## Phase 5 — Reaver backend
+## Phase 5 — Reaver transport/backend
 
 - [x] Select and pin candidate upstream revision (`t6x/reaver-wps-fork-t6x`)
 - [ ] Complete per-file third-party redistribution/license review
-- [ ] Reproducible Android build
+- [ ] Reproducible Android native build
+- [ ] Integrate controlled on-air WPS transport behind the connected-target authorization gate
 - [ ] Structured backend adapter
 - [ ] Structured Reaver/wash output parser
 - [ ] Session/log integration
