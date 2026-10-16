@@ -4,6 +4,7 @@ import io.github.reyfxck.wpsxandroid.core.capability.DeviceCapabilityProbe
 import io.github.reyfxck.wpsxandroid.core.capability.DeviceCapabilitySnapshot
 import io.github.reyfxck.wpsxandroid.core.capability.PacketInjectionReadiness
 import io.github.reyfxck.wpsxandroid.core.capability.RootAccessStatus
+import io.github.reyfxck.wpsxandroid.core.capability.RootState
 import io.github.reyfxck.wpsxandroid.platform.root.AndroidRootDetector
 import io.github.reyfxck.wpsxandroid.platform.wifi.AndroidMonitorModeDetector
 import io.github.reyfxck.wpsxandroid.platform.wifi.AndroidWifiInterfaceDetector
@@ -25,8 +26,13 @@ class AndroidDeviceCapabilityProbe(
     }
 
     private suspend fun snapshot(root: RootAccessStatus): DeviceCapabilitySnapshot {
-        val interfaces = wifiInterfaceDetector.discover()
-        val monitorMode = monitorModeDetector.inspect()
+        val rootVerified = root.state == RootState.GRANTED
+        val interfaces = if (rootVerified) {
+            wifiInterfaceDetector.discoverWithRootFallback()
+        } else {
+            wifiInterfaceDetector.discover()
+        }
+        val monitorMode = monitorModeDetector.inspect(rootVerified = rootVerified)
         return DeviceCapabilitySnapshot(
             root = root,
             wifiInterfaces = interfaces,
