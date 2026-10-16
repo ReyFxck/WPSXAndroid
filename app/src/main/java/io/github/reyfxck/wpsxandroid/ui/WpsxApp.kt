@@ -705,9 +705,9 @@ private fun SettingsScreen(
             InfoCard(
                 title = "WPS metadata",
                 lines = listOf(
-                    "On Android 11+ the app also parses WPS beacon information elements when the device exposes them.",
-                    "That can reveal WPS version, AP Setup Locked state, manufacturer and model without an active WPS exchange.",
-                    "If a field is missing, the app reports Unknown instead of guessing.",
+                    "On Android 11+ the app parses passive WPS beacon information elements when the device exposes them.",
+                    "That can reveal WPS version, setup/lock state, manufacturer, model, serial number, device name and advertised configuration methods without an active WPS exchange.",
+                    "If a field is missing, the app reports Unknown or simply omits that optional field instead of guessing.",
                 ),
             )
         }
@@ -949,10 +949,17 @@ private fun NetworkDetailsScreen(
                         false -> "No"
                         null -> "Unknown"
                     }}"
+                    wps?.setupState?.let { state ->
+                        lines += "WPS setup state: $state (${wps.setupStateLabel ?: "Unknown"})"
+                    }
                     wps?.manufacturer?.let { lines += "Manufacturer: $it" }
                     wps?.modelName?.let { lines += "Model: $it" }
                     wps?.modelNumber?.let { lines += "Model number: $it" }
+                    wps?.serialNumber?.let { lines += "Serial number: $it" }
                     wps?.deviceName?.let { lines += "Device name: $it" }
+                    wps?.configMethods?.takeIf { it.isNotEmpty() }?.let { methods ->
+                        lines += "Config methods: ${methods.joinToString(", ")}"
+                    }
                     if (wps == null) {
                         lines += "WPS was advertised, but detailed WPS information elements were not exposed by this device/scan."
                     }
