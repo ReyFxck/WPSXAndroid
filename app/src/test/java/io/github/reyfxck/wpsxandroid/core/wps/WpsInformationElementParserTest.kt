@@ -29,6 +29,41 @@ class WpsInformationElementParserTest {
     }
 
     @Test
+    fun `parses setup state serial device name and config methods`() {
+        val body = byteArrayOf(
+            0x00, 0x50, 0xF2.toByte(), 0x04,
+            0x10, 0x44, 0x00, 0x01, 0x02,
+            0x10, 0x42, 0x00, 0x07,
+            '1'.code.toByte(), '2'.code.toByte(), '3'.code.toByte(), '4'.code.toByte(),
+            '5'.code.toByte(), '6'.code.toByte(), '7'.code.toByte(),
+            0x10, 0x11, 0x00, 0x06,
+            'R'.code.toByte(), 'o'.code.toByte(), 'u'.code.toByte(), 't'.code.toByte(),
+            'e'.code.toByte(), 'r'.code.toByte(),
+            0x10, 0x08, 0x00, 0x02, 0x01, 0x88.toByte(),
+        )
+
+        val parsed = WpsInformationElementParser.parseVendorSpecificElement(body)
+        assertNotNull(parsed)
+        assertEquals(2, parsed?.setupState)
+        assertEquals("Configured", parsed?.setupStateLabel)
+        assertEquals("1234567", parsed?.serialNumber)
+        assertEquals("Router", parsed?.deviceName)
+        assertEquals(0x0188, parsed?.configMethodsMask)
+        assertEquals(listOf("Display", "PBC", "Keypad"), parsed?.configMethods)
+    }
+
+    @Test
+    fun `parses WPS 2 specific virtual config methods without duplicate base labels`() {
+        val body = byteArrayOf(
+            0x00, 0x50, 0xF2.toByte(), 0x04,
+            0x10, 0x08, 0x00, 0x02, 0x22, 0x88.toByte(),
+        )
+
+        val parsed = WpsInformationElementParser.parseVendorSpecificElement(body)
+        assertEquals(listOf("Virtual Display", "Virtual PBC"), parsed?.configMethods)
+    }
+
+    @Test
     fun `parses WPS 2 version from WFA vendor extension`() {
         val body = byteArrayOf(
             0x00, 0x50, 0xF2.toByte(), 0x04,
