@@ -103,7 +103,7 @@ object PixieReadinessEvaluator {
             root?.state == RootState.GRANTED &&
             interfaces.isNotEmpty() &&
             snapshot?.monitorMode?.state == CapabilityState.AVAILABLE &&
-            snapshot.packetInjection.state == CapabilityState.AVAILABLE
+            snapshot?.packetInjection?.state == CapabilityState.AVAILABLE
 
         return PixieReadinessReport(
             canProceedToLabBackend = canProceed,
