@@ -11,10 +11,14 @@ import android.net.wifi.ScanResult as AndroidScanResult
 import android.net.wifi.WifiManager
 import android.os.Build
 import io.github.reyfxck.wpsxandroid.core.model.WifiNetwork
+import io.github.reyfxck.wpsxandroid.core.model.WifiStandard
+import io.github.reyfxck.wpsxandroid.core.wifi.MacVendorResolver
 import io.github.reyfxck.wpsxandroid.core.wifi.ScanResult
 import io.github.reyfxck.wpsxandroid.core.wifi.WifiCapabilityParser
 import io.github.reyfxck.wpsxandroid.core.wifi.WifiScanner
 import io.github.reyfxck.wpsxandroid.core.wifi.wifiChannelFromFrequency
+import io.github.reyfxck.wpsxandroid.core.wps.WpsBeaconInfo
+import io.github.reyfxck.wpsxandroid.core.wps.WpsInformationElementParser
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.coroutines.resume
@@ -112,6 +116,10 @@ class AndroidWifiScanner(context: Context) : WifiScanner {
 
     private fun mapNetwork(result: AndroidScanResult): WifiNetwork {
         val parsed = WifiCapabilityParser.parse(result.capabilities.orEmpty())
+        val wpsInfo = extractWpsBeaconInfo(result)
+        val vendorName = wpsInfo?.manufacturer?.takeIf { it.isNotBlank() }
+            ?: MacVendorResolver.resolve(result.BSSID.orEmpty())
+
         return WifiNetwork(
             ssid = result.SSID.orEmpty(),
             bssid = result.BSSID.orEmpty(),
@@ -120,8 +128,41 @@ class AndroidWifiScanner(context: Context) : WifiScanner {
             channel = wifiChannelFromFrequency(result.frequency),
             capabilities = result.capabilities.orEmpty(),
             securityModes = parsed.securityModes,
-            wpsAdvertised = parsed.wpsAdvertised,
+            wpsAdvertised = parsed.wpsAdvertised || wpsInfo != null,
+            wpsInfo = wpsInfo,
+            vendorName = vendorName,
+            wifiStandard = mapWifiStandard(result),
         )
+    }
+
+    private fun extractWpsBeaconInfo(result: AndroidScanResult): WpsBeaconInfo? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return null
+
+        val vendorElements = runCatching {
+            result.informationElements
+                .asSequence()
+                .filter { it.id == VENDOR_SPECIFIC_IE_ID }
+                .map { element ->
+                    val buffer = element.bytes.duplicate()
+                    ByteArray(buffer.remaining()).also(buffer::get)
+                }
+                .toList()
+        }.getOrDefault(emptyList())
+
+        return WpsInformationElementParser.parseVendorSpecificElements(vendorElements)
+    }
+
+    private fun mapWifiStandard(result: AndroidScanResult): WifiStandard {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return WifiStandard.UNKNOWN
+        return when (result.wifiStandard) {
+            AndroidScanResult.WIFI_STANDARD_LEGACY -> WifiStandard.LEGACY
+            AndroidScanResult.WIFI_STANDARD_11N -> WifiStandard.WIFI_4
+            AndroidScanResult.WIFI_STANDARD_11AC -> WifiStandard.WIFI_5
+            AndroidScanResult.WIFI_STANDARD_11AX -> WifiStandard.WIFI_6
+            AndroidScanResult.WIFI_STANDARD_11AD -> WifiStandard.WIFI_60_GHZ
+            AndroidScanResult.WIFI_STANDARD_11BE -> WifiStandard.WIFI_7
+            else -> WifiStandard.UNKNOWN
+        }
     }
 
     private fun hasFineLocationPermission(): Boolean =
@@ -130,5 +171,6 @@ class AndroidWifiScanner(context: Context) : WifiScanner {
 
     private companion object {
         const val SCAN_TIMEOUT_MS = 12_000L
+        const val VENDOR_SPECIFIC_IE_ID = 221
     }
 }
