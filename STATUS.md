@@ -79,9 +79,11 @@ Current verification baseline: Android CI run #77 built `:app:assembleDebug`, ra
 - [x] Rooted `/sys/class/net` interface fallback — **Implemented AND CI verified; device verification pending**
 - [x] Device capability UI — **Implemented; CI verified, device verification pending**
 - [x] Read-only monitor-mode `iw phy` probe — **Implemented; CI verified, device verification pending**
+- [x] Read-only `iw dev` monitor-interface probe + backend classifier — **Implemented; CI verification pending, device verification pending**
 - [x] Rooted read-only `iw phy` fallback — **Implemented; CI verified, device verification pending**
 - [x] Packet-injection readiness assessment — **Implemented; CI verified, device verification pending** (read-only; no frames transmitted)
 - [x] Native executable lifecycle + structured execution traces — **Implemented; CI verified, device verification pending**
+- [ ] Platform-specific same-interface monitor evidence adapters — `[IN PROGRESS]`
 - [ ] Active packet-injection verification — `Not implemented`
 
 ## Authorized test mode
