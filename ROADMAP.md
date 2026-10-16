@@ -16,12 +16,13 @@
 - [x] Add channel/frequency helpers
 - [x] Add Wi-Fi band classification (2.4/5/6/60 GHz)
 - [x] Add compact network cards and status indicators
+- [x] Add RSSI-aware Wi-Fi signal indicators with green open-network state
 - [x] Add AP details screen
 - [x] Add Channels tab with detected-AP occupancy per channel
 - [x] Add persistent scanner filters/sort settings
 - [ ] Verify scanner/details/channels flow on physical devices
 - [ ] Research reliable WPS visibility on modern Android beyond capability-string heuristics
-- [ ] Research a reliable read-only WPS registrar lock-state source before showing locked/unlocked icons
+- [ ] Research additional reliable read-only WPS registrar state sources
 
 ## Phase 2 — Offline WPS PIN engine
 
@@ -47,19 +48,22 @@
 
 ## Phase 4 — Pixie Dust backend
 
-- [ ] Select audited upstream revision
-- [ ] Document third-party license
-- [ ] Reproducible Android build
+- [x] Select and pin candidate upstream revision (`kimocoder/pixiewps`)
+- [x] Document Pixiewps third-party license/provenance
+- [x] Add read-only Pixie readiness evaluator + tests
+- [x] Add AP-details readiness/session-check UI
+- [ ] Reproducible Android/NDK build of the pinned engine
 - [ ] Structured backend adapter
-- [ ] Session/log UI
+- [ ] Persistent/crash-safe backend session logs
 - [ ] Controlled-lab test matrix
 
 ## Phase 5 — Reaver backend
 
-- [ ] Select audited upstream revision
-- [ ] Document third-party license/dependencies
+- [x] Select and pin candidate upstream revision (`t6x/reaver-wps-fork-t6x`)
+- [ ] Complete per-file third-party redistribution/license review
 - [ ] Reproducible Android build
 - [ ] Structured backend adapter
+- [ ] Structured Reaver/wash output parser
 - [ ] Session/log integration
 - [ ] Controlled-lab test matrix
 
@@ -68,6 +72,7 @@
 - [x] Material 3 Expressive theme
 - [x] Adaptive launcher icon + monochrome themed icon
 - [x] Top-level settings screen
+- [ ] Curated manufacturer logo pack with source/trademark review
 - [ ] Persistent scan history (opt-in)
 - [ ] Exportable audit report
 - [ ] Crash-safe backend sessions
